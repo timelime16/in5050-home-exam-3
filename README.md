@@ -1,47 +1,74 @@
 # Codec63 #
 
-The repository contains code for both native C code that is meant for compilation with GCC,
-and native CUDA code that is meant for compilation with NVCC. Choose the subdirectory 
-c63-in-c for the first and c63-in-cuda for the second.
-
-The code is actually the same at this point (C++ is pretty much a superset of C,
-and CUDA a superset of C++), only the filenames are different for convenience.
-
 ## Dolphin SISCI
 
 This branch contains a few changes compared to master to facilitate using SISCI
-in a Dolphin NTB cluster. First of all, two new executables are build:
-c63server and c63client. The client is a copy of c63enc with takes an
-additional `-r` parameter for remote node and call `SCIInitialize`. The
-c63server is a very bare bones executable that just calls `SCIInitialize`. The
-intention is that c63client runs on the x86 node and the c63server on the
-Xavier. Additionally there is a `run.sh` script that compiles and runs the code
-on the target nodes. This script should be run on the login node, it
-automatically copies over the source to both nodes, compiles and runs, passing
-the correct remote node id with `-r` to the program. You may change the
-`run.sh` script, but the delivery should contain a run.sh with the same usage.
+in a Dolphin NTB cluster. First of all, three new executables are build:
+c63server, c63worker and c63writer. The writer is a copy of c63enc with some code
+removed and some additional arguments. All the new executables parse arguments,
+including the nodeids of the other nodes and call `SCIInitialize`. Otherwise
+they are pretty empty, and you need to fill in the blanks. The intention is that
+c63server reads the inputfile, c63worker encodes the video and c63writer receives
+and writes the encoded video to disk.
+Additionally there is a `run.sh` script that compiles and runs the code
+on all 4 target nodes. This script should be run on the login node, it
+automatically compiles and copies over the binaries to the nodes, and runs, passing
+remote node ids as arguments to that you can boot strap communication.
 
-Same as with the previous exam, select either c63-in-c or c63-in-cuda, but this
-time, set it in `run.sh` so that it compiles the correct variant. You also need
-to set your group number in `common.h`.
+After the run has completed, the script writes logfiles containing the output
+from each program and copies the output video file back to the source directory.
+
+You may change the `run.sh` script, but the delivery should contain the
+modified run.sh and it should require no additional arguments.
+
+For this exam, the cuda version has been removed.
 
 ### Things you need to change
 
-- Set cuda or c in `run.sh`
 - Set your group number in `c63.h`
 
 
 ## Usage
 
-The `run.sh` script will compile and launch the encoder on both nodes. `c63client`
-will be run on the PC and `c63server` will be launched
-on the tegra. To specify the cluster to run on, specify the `--tegra` parameter.
-The x86 node is automatically selected from the given tegra node. To pass arguments
-to `c63client`, use `--args "arg1 arg2"`.
+The `run.sh` script will compile and launch the encoder on all nodes.  To
+specify which 4 nodes to run on, specify the `--block` parameter. This selects
+a group of 4 nodes (hard coded in the script). Run the script without arguments to
+see the usage.
 
 Example usage:
 ```
-./run.sh --tegra tegra-1 --args "/mnt/sdcard/foreman.yuv -o output -w 352 -h 288"
+# ./run.sh --block 1
+
+Source dir: /home/larsbk/in5050-codec63/c63-in-c
+### Compiling on localhost ###
+
+(...)
+
+[ 30%] Built target c63
+
+(...)
+
+### Copying over binaries to remote hosts ###
+Server dolphin-01 command: c63server  -r 8 -r 12 -o 16 -w 352 -h 288 /opt/Media/foreman.yuv
+Writer dolphin-04 command: c63writer -s 4  -r 8 -r 12 -o ./output.c63
+Worker dolphin-02 command: c63worker -s 4  -r 8 -r 12
+Worker dolphin-03 command: c63worker -s 4  -r 8 -r 12
+
+### Running ###
+
+(...)
+server: Hello World!
+
+(...)
+Copying back output file from writer node
+-rw-rw-r-- 1 larsbk larsbk 6 april 28 15:47 /home/larsbk/in5050-codec63/output.c63
+
+(...)
+Logfiles:
+-rw-rw-r-- 1 larsbk larsbk  21 april 28 15:47 logs/20260428-134747-dolphin-02.log
+-rw-rw-r-- 1 larsbk larsbk  21 april 28 15:47 logs/20260428-134747-dolphin-03.log
+-rw-rw-r-- 1 larsbk larsbk 166 april 28 15:47 logs/20260428-134747-server.log
+-rw-rw-r-- 1 larsbk larsbk  21 april 28 15:47 logs/20260428-134747-writer.log
 ```
 
 We strongly recommend that clone the github repository in5050-codec63 twice.
