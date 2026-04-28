@@ -25,6 +25,7 @@ For this exam, the cuda version has been removed.
 
 ### Things you need to change
 
+- Make sure you can login to the dolpin-xx nodes without passord by running (for example): `for dol in $(seq -w 01 12); do ssh-copy-id dolphin-$dol; done`
 - Set your group number in `c63.h`
 
 
