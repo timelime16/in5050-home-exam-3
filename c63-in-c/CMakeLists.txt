@@ -67,10 +67,10 @@ target_compile_options(c63server PUBLIC -D_REENTRANT)
 target_link_libraries(c63server c63 m)
 target_link_libraries(c63server SISCI)
 
-add_executable(c63client
-               c63client.c c63.h
+add_executable(c63worker
+               c63worker.c c63.h
                c63_write.c c63_write.h)
-target_compile_options(c63client PUBLIC -D_REENTRANT)
-target_link_libraries(c63client c63 m)
-target_link_libraries(c63client SISCI)
+target_compile_options(c63worker PUBLIC -D_REENTRANT)
+target_link_libraries(c63worker c63 m)
+target_link_libraries(c63worker SISCI)
 
