@@ -17,11 +17,12 @@
 #include "me.h"
 #include "tables.h"
 
-static char *output_file, *input_file;
+static char *input_file;
 FILE *outfile;
 
 static int limit_numframes = 0;
 static uint32_t worker_nodes[MAX_NUM_WORKERS] = {};
+static uint32_t writer_node = 0;
 
 static uint32_t width;
 static uint32_t height;
@@ -131,7 +132,9 @@ static void c63_encode_image(struct c63_common *cm, yuv_t *image)
   /* Function dump_image(), found in common.c, can be used here to check if the
      prediction is correct */
 
-  write_frame(cm);
+  /* FIXME: This is where we need to write the encoded frame. */
+  /* write_frame(cm); */
+  fprintf(stderr, "FIXME: write_frame()\n");
 
   ++cm->framenum;
   ++cm->frames_since_keyframe;
@@ -183,12 +186,12 @@ void free_c63_enc(struct c63_common* cm)
 
 static void print_help()
 {
-  printf("Usage: ./c63client -r nodeid [options] input_file\n");
+  printf("Usage: ./c63server -r nodeid [options] input_file\n");
   printf("Commandline options:\n");
   printf("  -r                             Node id of workers (multiple)\n");
+  printf("  -o                             Node id of writer node\n");
   printf("  -h                             Height of images to compress\n");
   printf("  -w                             Width of images to compress\n");
-  printf("  -o                             Output file (.c63)\n");
   printf("  [-f]                           Limit number of frames to encode\n");
   printf("\n");
 
@@ -219,7 +222,7 @@ int main(int argc, char **argv)
         width = atoi(optarg);
         break;
       case 'o':
-        output_file = optarg;
+        writer_node = atoi(optarg);
         break;
       case 'f':
         limit_numframes = atoi(optarg);
@@ -236,10 +239,6 @@ int main(int argc, char **argv)
     exit(EXIT_FAILURE);
   }
 
-  for (int i = 0; i < MAX_NUM_WORKERS; i++) {
-    printf("worker: %d\n", worker_nodes[i]);
-  }
-
   /* Initialize the SISCI library */
   SCIInitialize(0, &error);
   if (error != SCI_ERR_OK) {
@@ -247,16 +246,7 @@ int main(int argc, char **argv)
       exit(EXIT_FAILURE);
   }
 
-  outfile = fopen(output_file, "wb");
-
-  if (outfile == NULL)
-  {
-    perror("fopen");
-    exit(EXIT_FAILURE);
-  }
-
   struct c63_common *cm = init_c63_enc(width, height);
-  cm->e_ctx.fp = outfile;
 
   input_file = argv[optind];
 
@@ -273,29 +263,19 @@ int main(int argc, char **argv)
   /* Encode input frames */
   int numframes = 0;
 
-  while (1)
-  {
-    image = read_yuv(infile, cm);
-
-    if (!image) { break; }
-
-    printf("Encoding frame %d, ", numframes);
-    c63_encode_image(cm, image);
-
-    free(image->Y);
-    free(image->U);
-    free(image->V);
-    free(image);
-
-    printf("Done!\n");
-
-    ++numframes;
-
-    if (limit_numframes && numframes >= limit_numframes) { break; }
+  printf("server: Hello World!\n");
+  printf("server: input file %s\n", input_file);
+  printf("server: %ux%u\n", width, height);
+  
+  for (int i = 0; i < MAX_NUM_WORKERS; i++) {
+    printf("server: Worker%d has nodeid: %u\n", i, worker_nodes[i]);
   }
 
+  printf("server: Writer nodeid: %u\n", writer_node);
+  
+  /* TODO: Time to read and encode the video */
+
   free_c63_enc(cm);
-  fclose(outfile);
   fclose(infile);
 
   SCITerminate();

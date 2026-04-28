@@ -65,6 +65,7 @@ int main(int argc, char **argv)
     exit(EXIT_FAILURE);
   }
 
+  printf("worker: Hello World!\n");
 
   SCITerminate();
 

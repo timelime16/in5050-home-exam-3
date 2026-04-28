@@ -68,9 +68,15 @@ target_link_libraries(c63server c63 m)
 target_link_libraries(c63server SISCI)
 
 add_executable(c63worker
-               c63worker.c c63.h
-               c63_write.c c63_write.h)
+               c63worker.c c63.h)
 target_compile_options(c63worker PUBLIC -D_REENTRANT)
 target_link_libraries(c63worker c63 m)
 target_link_libraries(c63worker SISCI)
+
+add_executable(c63writer
+               c63writer.c c63.h
+               c63_write.c c63_write.h)
+target_compile_options(c63writer PUBLIC -D_REENTRANT)
+target_link_libraries(c63writer c63 m)
+target_link_libraries(c63writer SISCI)
 

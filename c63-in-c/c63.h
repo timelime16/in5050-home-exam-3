@@ -10,7 +10,7 @@
 #endif
 
 
-#define MAX_NUM_WORKERS 3
+#define MAX_NUM_WORKERS 2
 
 /* GET_SEGMENTID(2) gives you segmentid 2 at your groups offset */
 #define GET_SEGMENTID(id) ( GROUP << 16 | id )
