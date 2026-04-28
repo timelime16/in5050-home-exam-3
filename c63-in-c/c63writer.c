@@ -83,7 +83,7 @@ int main(int argc, char **argv)
 
   printf("writer: Hello World!\n");
 
-
+  /* FIXME: You should remove this when you have real data to write */
   fwrite("HELLO\n", 6, 1, outfile);
 
   fclose(outfile);
