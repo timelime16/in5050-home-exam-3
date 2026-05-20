@@ -2,6 +2,7 @@
 #define C63_TABLES_H_
 
 #include <inttypes.h>
+#include <arm_neon.h>
 
 extern uint8_t yquanttbl_def[64] __attribute__((aligned(16)));
 extern uint8_t uvquanttbl_def[64] __attribute__((aligned(16)));
@@ -18,5 +19,8 @@ extern uint8_t zigzag_V[64];
 extern float dctlookup[8][8];
 extern uint16_t MVVLC[8];
 extern uint8_t MVVLC_Size[8];
+
+extern float16_t dctlookup_f16[8][8];
+extern float16_t dctlookup_f16_T[8][8];
 
 #endif  /* C63_TABLES_H_ */

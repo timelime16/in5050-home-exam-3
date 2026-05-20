@@ -5,12 +5,12 @@
 
 #include <inttypes.h>
 
-void dct_quant_block_8x8(int16_t *in_data, int16_t *out_data,
-    uint8_t *quant_tbl);
+void dct_quant_block_8x8_neon(float16x8_t *block, float16x8_t *dct, int16_t *out_data, uint8_t *quant_tbl);
 
 void dequant_idct_block_8x8(int16_t *in_data, int16_t *out_data,
     uint8_t *quant_tbl);
 
-void sad_block_8x8(uint8_t *block1, uint8_t *block2, int stride, int *result);
+void dequant_idct_block_8x8_neon(int16_t *in_data, uint8_t *out_data, uint8_t *prediction, uint8_t *quant_tbl, 
+  int x, int w, float16x8_t *dct);
 
 #endif  /* C63_DSP_H_ */

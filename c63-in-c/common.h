@@ -14,6 +14,9 @@ void dct_quantize(uint8_t *in_data, uint8_t *prediction, uint32_t width,
 void dequantize_idct(int16_t *in_data, uint8_t *prediction, uint32_t width,
     uint32_t height, uint8_t *out_data, uint8_t *quantization);
 
+void dequantize_idct_neon(int16_t *in_data, uint8_t *prediction, uint32_t width,
+    uint32_t height, uint8_t *out_data, uint8_t *quantization);
+
 void destroy_frame(struct frame *f);
 
 void dump_image(yuv_t *image, int w, int h, FILE *fp);
