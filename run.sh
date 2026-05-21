@@ -15,7 +15,7 @@ if [ ! -d $SRC_DIR ]; then
     exit 1
 fi
 
-INPUT_FILE="/opt/Media/foreman.yuv"
+INPUT_FILE="/foreman.yuv"
 OUTPUT_FILE="$(realpath $(dirname $0))/output.c63"
 WIDTH="352"
 HEIGHT="288"
