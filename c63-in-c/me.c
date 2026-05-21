@@ -8,8 +8,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <arm_neon.h>
-
 #include "dsp.h"
 #include "me.h"
 
@@ -45,54 +43,17 @@ static void me_block_8x8(struct c63_common *cm, int mb_x, int mb_y,
   int mx = mb_x * 8;
   int my = mb_y * 8;
 
-  uint8x8_t _r0, _r1, _r2, _r3, _r4, _r5, _r6, _r7; // orig rows
-
-  uint8x8_t _rr0, _rr1, _rr2, _rr3, _rr4, _rr5, _rr6, _rr7; // for ref block
-
-  uint16x8_t _acc;
-
-  uint32_t best_sad = UINT_MAX;
-
-  // Load orig block [r0 | r1] 16 pixels in one register
-  orig = orig + my*w+mx;
-  _r0 = vld1_u8(orig); _r1 = vld1_u8(orig + w); _r2 = vld1_u8(orig + 2*w); _r3 = vld1_u8(orig + 3*w);
-  _r4 = vld1_u8(orig + 4*w); _r5 = vld1_u8(orig + 5*w); _r6 = vld1_u8(orig + 6*w); _r7 = vld1_u8(orig + 7*w);
+  int best_sad = INT_MAX;
 
   for (y = top; y < bottom; ++y)
   {
     for (x = left; x < right; ++x)
     {
-      // Load ref block
-      _acc = vdupq_n_u16(0); // Init acc
+      int sad;
+      sad_block_8x8(orig + my*w+mx, ref + y*w+x, w, &sad);
 
-      uint8_t *calc_ref = ref + y*w+x;
+      /* printf("(%4d,%4d) - %d\n", x, y, sad); */
 
-      // calculate 
-      _rr0 = vld1_u8(calc_ref); 
-      _acc = vabal_u8(_acc, _r0, _rr0);
-
-      _rr1 = vld1_u8(calc_ref + w); 
-      _acc = vabal_u8(_acc, _r1, _rr1);
-
-      _rr2 = vld1_u8(calc_ref + 2*w); 
-      _acc = vabal_u8(_acc, _r2, _rr2);
-
-      _rr3 = vld1_u8(calc_ref + 3*w);
-      _acc = vabal_u8(_acc, _r3, _rr3);
-
-      _rr4 = vld1_u8(calc_ref + 4*w); 
-      _acc = vabal_u8(_acc, _r4, _rr4);
-
-      _rr5 = vld1_u8(calc_ref + 5*w);
-      _acc = vabal_u8(_acc, _r5, _rr5);
-
-      _rr6 = vld1_u8(calc_ref + 6*w); 
-      _acc = vabal_u8(_acc, _r6, _rr6);
-      
-      _rr7 = vld1_u8(calc_ref + 7*w);
-      _acc = vabal_u8(_acc, _r7, _rr7);
-
-      uint32_t sad = vaddvq_u16(_acc); // compare 
       if (sad < best_sad)
       {
         mb->mv_x = x - mx;
@@ -105,8 +66,8 @@ static void me_block_8x8(struct c63_common *cm, int mb_x, int mb_y,
   /* Here, there should be a threshold on SAD that checks if the motion vector
      is cheaper than intraprediction. We always assume MV to be beneficial */
 
-  // printf("Using motion vector (%d, %d) with SAD %d\n", mb->mv_x, mb->mv_y,
-  //    best_sad);
+  /* printf("Using motion vector (%d, %d) with SAD %d\n", mb->mv_x, mb->mv_y,
+     best_sad); */
 
   mb->use_mv = 1;
 }
@@ -116,123 +77,28 @@ void c63_motion_estimate(struct c63_common *cm)
   /* Compare this frame with previous reconstructed frame */
   int mb_x, mb_y;
 
-  #pragma omp parallel
+  /* Luma */
+  for (mb_y = 0; mb_y < cm->mb_rows; ++mb_y)
   {
-    /* Luma */
-    #pragma omp for collapse(2) schedule(static)
-    for (mb_y = 0; mb_y < cm->mb_rows; ++mb_y)
+    for (mb_x = 0; mb_x < cm->mb_cols; ++mb_x)
     {
-      for (mb_x = 0; mb_x < cm->mb_cols; ++mb_x)
-      {
-        me_block_8x8(cm, mb_x, mb_y, cm->curframe->orig->Y,
-            cm->refframe->recons->Y, Y_COMPONENT);
-      }
+      me_block_8x8(cm, mb_x, mb_y, cm->curframe->orig->Y,
+          cm->refframe->recons->Y, Y_COMPONENT);
     }
+  }
 
-    /* Chroma */
-    #pragma omp for collapse(2) schedule(static)
-    for (mb_y = 0; mb_y < cm->mb_rows / 2; ++mb_y)
+  /* Chroma */
+  for (mb_y = 0; mb_y < cm->mb_rows / 2; ++mb_y)
+  {
+    for (mb_x = 0; mb_x < cm->mb_cols / 2; ++mb_x)
     {
-      for (mb_x = 0; mb_x < cm->mb_cols / 2; ++mb_x)
-      {
-        me_block_8x8(cm, mb_x, mb_y, cm->curframe->orig->U,
-            cm->refframe->recons->U, U_COMPONENT);
-      }
-    }
-
-    #pragma omp for collapse(2) schedule(static)
-    for (mb_y = 0; mb_y < cm->mb_rows / 2; ++mb_y)
-    {
-      for (mb_x = 0; mb_x < cm->mb_cols / 2; ++mb_x)
-      {
-        me_block_8x8(cm, mb_x, mb_y, cm->curframe->orig->V,
-            cm->refframe->recons->V, V_COMPONENT);
-      }
+      me_block_8x8(cm, mb_x, mb_y, cm->curframe->orig->U,
+          cm->refframe->recons->U, U_COMPONENT);
+      me_block_8x8(cm, mb_x, mb_y, cm->curframe->orig->V,
+          cm->refframe->recons->V, V_COMPONENT);
     }
   }
 }
-
-static void mc_block_8x8_neon(struct c63_common *cm, int mb_x, int mb_y,
-    uint8_t *predicted, uint8_t *ref, int color_component)
-{
-  struct macroblock *mb =
-    &cm->curframe->mbs[color_component][mb_y*cm->padw[color_component]/8+mb_x];
-
-  if (!mb->use_mv) { return; }
-
-  int left = mb_x * 8;
-  int top = mb_y * 8;
-
-  int w = cm->padw[color_component];
-
-  /* Copy block from ref mandated by MV */
-  uint8x8_t _r0, _r1, _r2, _r3, _r4, _r5, _r6, _r7;
-
-  uint8_t *dst_base = predicted + top * w + left;
-  uint8_t *src_base = ref + (top + mb->mv_y) * w + left + mb->mv_x;
-
-  _r0 = vld1_u8(src_base);
-  _r1 = vld1_u8(src_base + w);
-  _r2 = vld1_u8(src_base + 2 * w);
-  _r3 = vld1_u8(src_base + 3 * w);
-  _r4 = vld1_u8(src_base + 4 * w);
-  _r5 = vld1_u8(src_base + 5 * w);
-  _r6 = vld1_u8(src_base + 6 * w);
-  _r7 = vld1_u8(src_base + 7 * w);
-
-  vst1_u8(dst_base, _r0);
-  vst1_u8(dst_base + w, _r1);
-  vst1_u8(dst_base + 2 * w, _r2);
-  vst1_u8(dst_base + 3 * w, _r3);
-  vst1_u8(dst_base + 4 * w, _r4);
-  vst1_u8(dst_base + 5 * w, _r5);
-  vst1_u8(dst_base + 6 * w, _r6);
-  vst1_u8(dst_base + 7 * w, _r7);
-}
-
-void c63_motion_compensate_neon(struct c63_common *cm)
-{
-  int mb_x, mb_y;
-
-  #pragma omp parallel 
-  {
-    /* Luma */
-    #pragma omp for collapse(2) schedule(static)
-    for (mb_y = 0; mb_y < cm->mb_rows; ++mb_y)
-    {
-      for (mb_x = 0; mb_x < cm->mb_cols; ++mb_x)
-      {
-        mc_block_8x8_neon(cm, mb_x, mb_y, cm->curframe->predicted->Y,
-            cm->refframe->recons->Y, Y_COMPONENT);
-      }
-    }
-
-    /* Chroma */
-    #pragma omp for collapse(2) schedule(static)
-    for (mb_y = 0; mb_y < cm->mb_rows / 2; ++mb_y)
-    {
-      for (mb_x = 0; mb_x < cm->mb_cols / 2; ++mb_x)
-      {
-        mc_block_8x8_neon(cm, mb_x, mb_y, cm->curframe->predicted->U,
-            cm->refframe->recons->U, U_COMPONENT);
-      }
-    }
-
-    #pragma omp for collapse(2) schedule(static)
-    for (mb_y = 0; mb_y < cm->mb_rows / 2; ++mb_y)
-    {
-      for (mb_x = 0; mb_x < cm->mb_cols / 2; ++mb_x)
-      {
-        mc_block_8x8_neon(cm, mb_x, mb_y, cm->curframe->predicted->V,
-            cm->refframe->recons->V, V_COMPONENT);
-      }
-    }
-  }
-}
-
-
-
-// Keep original implementation for dec
 
 /* Motion compensation for 8x8 block */
 static void mc_block_8x8(struct c63_common *cm, int mb_x, int mb_y,
@@ -283,15 +149,6 @@ void c63_motion_compensate(struct c63_common *cm)
     {
       mc_block_8x8(cm, mb_x, mb_y, cm->curframe->predicted->U,
           cm->refframe->recons->U, U_COMPONENT);
-      mc_block_8x8(cm, mb_x, mb_y, cm->curframe->predicted->V,
-          cm->refframe->recons->V, V_COMPONENT);
-    }
-  }
-
-  for (mb_y = 0; mb_y < cm->mb_rows / 2; ++mb_y)
-  {
-    for (mb_x = 0; mb_x < cm->mb_cols / 2; ++mb_x)
-    {
       mc_block_8x8(cm, mb_x, mb_y, cm->curframe->predicted->V,
           cm->refframe->recons->V, V_COMPONENT);
     }
