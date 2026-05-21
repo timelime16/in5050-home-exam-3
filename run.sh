@@ -25,7 +25,7 @@ WORKER_CMD="c63worker"
 WRITER_CMD="c63writer"
 DATE=$(date -u +%Y%m%d-%H%M%S)
 RSYNC_ARGS="-rt --exclude=logs/ --exclude=.*"
-BUILD_DIR="in5050-codec63-build"
+BUILD_DIR="c63-in-cbuild"
 BLOCK=""
 
 echo "Source dir: $SRC_DIR"
