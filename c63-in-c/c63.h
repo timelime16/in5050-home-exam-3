@@ -5,7 +5,9 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#ifndef GROUP 9
+#define GROUP 9
+
+#ifndef GROUP
 #error Fill in group number
 #endif
 
