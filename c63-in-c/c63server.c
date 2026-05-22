@@ -130,7 +130,7 @@ static void connect_remote_segment(sci_desc_t *sd, unsigned int worker_id)
     {
       SCIConnectSegment(*sd, &remote_seg, worker_id, GET_SEGMENTID(WORKER), ADAPTER_NO, SCI_NO_CALLBACK,
           SCI_NO_ARG, SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
-      fprintf("retrying connection (server to worker)\n");
+      fprintf(stderr, "retrying connection (server to worker)\n");
     } while (error != SCI_ERR_OK);
 }
 
