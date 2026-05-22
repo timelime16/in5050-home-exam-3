@@ -459,6 +459,8 @@ int main(int argc, char **argv)
   dma.config->dma_queue_state[0] = dma.config->dma_queue_state[1] = TRANSFER_COMPLETED;
   while (dma.config->complete != ACKNOWLEDGED);
 
+  reader_config->dma_queue_state[buf] = ACKNOWLEDGED;
+
   sci_cleanup(&worker_ctx, &dma);
   free_c63_enc(cm);
   free(image.Y);

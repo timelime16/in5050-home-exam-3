@@ -267,6 +267,8 @@ int main(int argc, char **argv)
     config->dma_queue_state[0] = AVAILABLE;
   }
 
+  config->complete = ACKNOWLEDGED;
+
   fclose(outfile);
   free_c63_enc(cm);
   sci_cleanup(&writer_ctx);
