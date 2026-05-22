@@ -266,7 +266,7 @@ int main(int argc, char **argv)
   fprintf(stderr, "server prune 2\n");
   // control
   sci_init_control(&dma);
-  dma.config->dma_queue_state[0] = dma.config->dma_queue_state[1] = BUSY;
+  dma.config->dma_queue_state[0] = dma.config->dma_queue_state[1] = AVAILABLE;
   dma.config->width = width;
   dma.config->height = height;
   dma.config->writer = writer_node;
@@ -290,7 +290,7 @@ int main(int argc, char **argv)
     perror("fopen");
     exit(EXIT_FAILURE);
   }
-  
+
   fprintf(stderr, "reached here server\n");
   /* Encode input frames */
   int numframes = 0;
