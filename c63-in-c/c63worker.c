@@ -368,12 +368,19 @@ int main(int argc, char **argv)
 
   // SCI 
   sci_init(&worker_ctx);
+
+  fprintf(stderr, "worker prune 4\n");
   reader_config = sci_init_control(&worker_ctx);
+
+  fprintf(stderr, "worker prune 6\n");
   size_t y_size = width * height;
   size_t uv_size = y_size / 4;
   size_t total_size = y_size + 2 * uv_size;
   size_t aligned_size = ((total_size + 4095) / 4096) * 4096;
   sci_init_worker(&worker_ctx, aligned_size);
+
+  
+  fprintf(stderr, "worker prune 6\n");
 
   sci_init_dma_ctx(&dma);
   
