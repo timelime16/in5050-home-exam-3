@@ -275,7 +275,8 @@ static void sci_init_worker(worker_t *worker, size_t total_size)
     SCISetSegmentAvailable(worker->frame_segment, ADAPTER_NO, SCI_NO_FLAGS, &error);
     sci_check_and_fail(error, "SCISetSegmentAvailable", "worker");
 
-    worker->frame_map = SCIMapLocalSegment(worker->frame_segment, NULL, 0, segment_size, 
+    sci_map_t local_map;
+    worker->frame_map = SCIMapLocalSegment(worker->frame_segment, &local_map, 0, segment_size, 
       NULL, SCI_NO_FLAGS, &error);
     sci_check_and_fail(error, "SCIMapLocalSegment", "worker");
 
