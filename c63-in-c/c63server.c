@@ -281,7 +281,7 @@ int main(int argc, char **argv)
   if (limit_numframes) { printf("Limited to %d frames.\n", limit_numframes); }
 
   FILE *infile = fopen(input_file, "rb");
-  fprintf(stderr, "reached here server")
+  fprintf(stderr, "reached here server");
 
   if (infile == NULL)
   {
