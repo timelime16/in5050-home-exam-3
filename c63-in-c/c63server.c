@@ -122,13 +122,13 @@ static void sci_init(dma_buffer_t *dma)
     buffer = (uint8_t *) dma->segment_map;
 }
 
-static void connect_remote_segment(sci_desc_t *sd, unsigned int worker_id)
+static void connect_remote_segment(dma_buffer_t *dma, unsigned int worker_id)
 {
     sci_error_t error;
 
     do 
     {
-      SCIConnectSegment(*sd, &remote_seg, worker_id, GET_SEGMENTID(WORKER), ADAPTER_NO, SCI_NO_CALLBACK,
+      SCIConnectSegment(dma->sd, &remote_seg, worker_id, GET_SEGMENTID(WORKER), ADAPTER_NO, SCI_NO_CALLBACK,
           SCI_NO_ARG, SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
     } while (error != SCI_ERR_OK);
 
@@ -272,7 +272,7 @@ int main(int argc, char **argv)
   dma_ctx[0].config = dma_ctx[1].config = dma.config;
   dma_ctx[0].buf = 0; dma_ctx[1].buf = 1;
 
-  connect_remote_segment(&dma.sd, worker_nodes[0]);
+  connect_remote_segment(&dma, worker_nodes[0]);
 
   input_file = argv[optind];
 

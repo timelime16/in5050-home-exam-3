@@ -274,16 +274,15 @@ static void sci_init_worker(worker_t *worker, size_t total_size)
     worker->frame_buffer = (uint8_t *) worker->frame_map;
 }
 
-static void connect_remote_segment(sci_desc_t *sd)
+static void connect_remote_segment(dma_buffer_t *dma)
 {
     sci_error_t error;
 
     do 
     {
-      SCIConnectSegment(*sd, &writer_remote_seg, writer_node, GET_SEGMENTID(WRITER), ADAPTER_NO, SCI_NO_CALLBACK,
+      SCIConnectSegment(dma->sd, &writer_remote_seg, writer_node, GET_SEGMENTID(WRITER), ADAPTER_NO, SCI_NO_CALLBACK,
           SCI_NO_ARG, SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
     } while (error != SCI_ERR_OK);
-
 
     fprintf(stderr, "connection done! (worker to writer)\n");
 }
@@ -375,7 +374,7 @@ int main(int argc, char **argv)
   dma.config->writer = writer_node;
   dma.config->initialized = 1;
 
-  connect_remote_segment(&dma.sd);
+  connect_remote_segment(&dma);
 
   struct c63_common *cm = init_c63_enc(width, height);
 
