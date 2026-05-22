@@ -366,13 +366,18 @@ int main(int argc, char **argv)
   size_t total_size = y_size + 2 * uv_size;
   size_t aligned_size = ((total_size + 4095) / 4096) * 4096;
   sci_init_worker(&worker_ctx, aligned_size);
+
+  fprintf(stderr, "reached here 1 worker\n");
   sci_init_dma_ctx(&dma);
   
+  fprintf(stderr, "reached here 2 worker\n");
   dma.config->dma_queue_state[0] = dma.config->dma_queue_state[1] = BUSY;
   dma.config->width = width;
   dma.config->height = height;
   dma.config->writer = writer_node;
   dma.config->initialized = 1;
+
+  fprintf(stderr, "reached here 3 worker\n");
 
   connect_remote_segment(&dma);
 
