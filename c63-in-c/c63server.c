@@ -102,7 +102,7 @@ static void sci_init(dma_buffer_t *dma)
     SCIOpen(&dma->sd, SCI_NO_FLAGS, &error);
     sci_check_and_fail(error, "SCIOpen", "server");
 
-    SCICreateDMAQueue(dma->sd, &dma->dma_queue, ADAPTER_NO, 4, SCI_NO_FLAGS, &error);
+    SCICreateDMAQueue(dma->sd, &dma->dma_queue, ADAPTER_NO, 1, SCI_NO_FLAGS, &error);
     sci_check_and_fail(error, "SCICreateDMAQueue", "server");
 
     // Segment
@@ -124,7 +124,7 @@ static void sci_init(dma_buffer_t *dma)
 static void connect_remote_segment(dma_buffer_t *dma, unsigned int worker_id)
 {
     sci_error_t error;
-
+    printf("connecting to: %d\n", worker_id);
     do 
     {
       SCIConnectSegment(dma->sd, &remote_seg, worker_id, GET_SEGMENTID(WORKER_DATA), ADAPTER_NO, SCI_NO_CALLBACK,
