@@ -133,7 +133,7 @@ static void connect_remote_segment(dma_buffer_t *dma, unsigned int worker_id)
           SCI_NO_ARG, SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
     } while (error != SCI_ERR_OK);
 
-    fprintf(stderr, "connection done! (server to worker)\n");
+    printf("connection done! (server to worker)\n");
 }
 
 static sci_callback_action_t dma_completion_callback(void* arg, sci_dma_queue_t dma_queue, sci_error_t status)
@@ -292,7 +292,7 @@ int main(int argc, char **argv)
     exit(EXIT_FAILURE);
   }
 
-  fprintf(stderr, "reached here server\n");
+  printf("reached here server\n");
   /* Encode input frames */
   int numframes = 0;
 
