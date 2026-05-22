@@ -372,7 +372,7 @@ int main(int argc, char **argv)
   fprintf(stderr, "worker prune 4\n");
   reader_config = sci_init_control(&worker_ctx);
 
-  fprintf(stderr, "worker prune 6\n");
+  fprintf(stderr, "worker prune 5\n");
   size_t y_size = width * height;
   size_t uv_size = y_size / 4;
   size_t total_size = y_size + 2 * uv_size;
