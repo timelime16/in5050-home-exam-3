@@ -149,6 +149,9 @@ static sci_callback_action_t dma_completion_callback(void* arg, sci_dma_queue_t 
 
 static void send_frame_data(dma_buffer_t *dma, int buf, dma_context_t *dma_ctx)
 {
+  // TODO: remove when doing 2 workers
+  buf = 0;
+
     sci_error_t error;
 
     size_t offset = buf * dma->total_size;
