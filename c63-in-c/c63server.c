@@ -142,7 +142,7 @@ static sci_callback_action_t dma_completion_callback(void* arg, sci_dma_queue_t 
 
   config->dma_queue_state[buf] = TRANSFER_COMPLETED;
 
-  return SCI_CALLBACK_DONE;
+  return SCI_CALLBACK_CONTINUE;
 }
 
 static void send_frame_data(dma_buffer_t *dma, int buf, dma_context_t *dma_ctx)
