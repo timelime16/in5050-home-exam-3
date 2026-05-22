@@ -281,10 +281,15 @@ static void connect_remote_segment(sci_desc_t *sd)
     } while (error != SCI_ERR_OK);
 }
 
-static void dma_completion_callback(void *arg)
+static sci_callback_action_t dma_completion_callback(void* arg, sci_dma_queue_t dma_queue, sci_error_t status)
 {
   dma_buffer_t *dma = (dma_buffer_t *) arg;
   dma->config->dma_queue_state[0] = TRANSFER_COMPLETED;
+  return SCI_CALLBACK_DONE;
+}
+
+static void dma_completion_callback(void *arg)
+{
 }
 
 static void send_encoded_data(dma_buffer_t *dma)
@@ -293,7 +298,7 @@ static void send_encoded_data(dma_buffer_t *dma)
 
     dma->config->dma_queue_state[0] = TRANSFERRING;
     SCIStartDmaTransfer(dma->dma_queue, dma->local_segment, writer_remote_seg, 0, sizeof(writer_job_t), 0,
-        dma_completion_callback, dma, SCI_NO_FLAGS, &error);
+        dma_completion_callback, dma, SCI_FLAG_USE_CALLBACK, &error);
     sci_check_and_fail(error, "SCIStartDMATransfer");
 }
 
