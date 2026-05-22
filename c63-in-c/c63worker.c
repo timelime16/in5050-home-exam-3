@@ -187,14 +187,23 @@ static config_t *sci_init_control(worker_t *worker)
 
   fprintf(stderr, "connection done! ctrl (worker to server)\n");
 
+
+  fprintf(stderr, "reached here 5 worker\n");
+
   config_t *config = (config_t *) SCIMapRemoteSegment(reader_remote_control_seg, NULL, 0, sizeof(config_t),
       NULL, SCI_NO_FLAGS, &error);
   sci_check_and_fail(error, "SCIMapRemoteSegment", "worker");
+
+
+  fprintf(stderr, "reached here 6 worker\n");
 
   while (!config->initialized);
   width = config->width;
   height = config->height;
   writer_node = config->writer;
+
+
+  fprintf(stderr, "reached here 7 worker\n");
 
   return config;
 }
