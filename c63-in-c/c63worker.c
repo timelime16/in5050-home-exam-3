@@ -240,7 +240,7 @@ static void sci_init_dma_ctx(dma_buffer_t *dma)
   SCISetSegmentAvailable(dma->control_segment, ADAPTER_NO, SCI_NO_FLAGS, &error);
   sci_check_and_fail(error, "SCISetSegmentAvailable", "worker");
 
-  dma->config = (config_t *) SCIMapLocalSegment(dma->control_segment, NULL, 0, sizeof(config_t),
+  dma->config = (config_t *) SCIMapLocalSegment(dma->control_segment, &local_map, 0, sizeof(config_t),
       NULL, SCI_NO_FLAGS, &error);
   sci_check_and_fail(error, "SCIMapLocalSegment", "worker");
 
