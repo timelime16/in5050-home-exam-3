@@ -218,6 +218,9 @@ int main(int argc, char **argv)
   int w = 0; /* worker index */
   uint8_t *image;
 
+  //TODO: REMOVE
+  fprintf(stderr, "reader = %d, worker = %d, writer = %d, rwctrl = %d, wwctrl = %d", GET_SEGMENTID(READER), GET_SEGMENTID(WORKER), GET_SEGMENTID(WRITER), GET_SEGMENTID(READER_WORKER_CTRL), GET_SEGMENTID(WORKER_WRITER_CTRL));
+
   // SCI variables
   dma_buffer_t dma;
   dma_context_t dma_ctx[NUM_SEG];

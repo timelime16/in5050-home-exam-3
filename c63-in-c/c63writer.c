@@ -175,7 +175,9 @@ static void sci_cleanup(writer_t *writer)
 
 
 int main(int argc, char **argv)
-{
+{  //TODO: REMOVE
+  fprintf(stderr, "reader = %d, worker = %d, writer = %d, rwctrl = %d, wwctrl = %d", GET_SEGMENTID(READER), GET_SEGMENTID(WORKER), GET_SEGMENTID(WRITER), GET_SEGMENTID(READER_WORKER_CTRL), GET_SEGMENTID(WORKER_WRITER_CTRL));
+
   int c;
   int w = 0; /* worker index */
 
