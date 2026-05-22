@@ -85,15 +85,15 @@ function parse_args()
     done
     if [ "$BLOCK" == "1" ]; then
         server="dolphin-01"
-        workers=("dolphin-02" "dolphin-03")
+        workers=("dolphin-02") # "dolphin-03")
         writer="dolphin-04"
     elif [ "$BLOCK" == "2" ]; then
         server="dolphin-05"
-        workers=("dolphin-07" "dolphin-08")
+        workers=("dolphin-07") #"dolphin-08")
         writer="dolphin-06"
     elif [ "$BLOCK" == "3" ]; then
         server="dolphin-10"
-        workers=("dolphin-09" "dolphin-11")
+        workers=("dolphin-09") #"dolphin-11")
         writer="dolphin-12"
     else
         echo "unknown compute block $BLOCK"
