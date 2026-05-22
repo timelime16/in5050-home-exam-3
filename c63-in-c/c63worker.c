@@ -222,7 +222,8 @@ static void sci_init_dma_ctx(dma_buffer_t *dma)
   SCISetSegmentAvailable(dma->local_segment, ADAPTER_NO, SCI_NO_FLAGS, &error);
   sci_check_and_fail(error, "SCISetSegmentAvailable", "worker");
 
-  dma->segment_map = SCIMapLocalSegment(dma->local_segment, &dma->segment_map, 0, sizeof(writer_job_t), 
+  sci_map_t local_map;
+  dma->segment_map = SCIMapLocalSegment(dma->local_segment, &local_map, 0, sizeof(writer_job_t), 
     NULL, SCI_NO_FLAGS, &error);
   sci_check_and_fail(error, "SCIMapLocalSegment", "worker");
 
@@ -376,7 +377,6 @@ int main(int argc, char **argv)
   dma.config->height = height;
   dma.config->writer = writer_node;
   dma.config->initialized = 1;
-
 
   connect_remote_segment(&dma);
 
