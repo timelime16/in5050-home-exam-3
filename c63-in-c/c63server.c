@@ -128,7 +128,7 @@ static void connect_remote_segment(dma_buffer_t *dma, unsigned int worker_id)
 
     do 
     {
-      SCIConnectSegment(dma->sd, &remote_seg, worker_id, GET_SEGMENTID(WORKER), ADAPTER_NO, SCI_NO_CALLBACK,
+      SCIConnectSegment(dma->sd, &remote_seg, worker_id, GET_SEGMENTID(WORKER_DATA), ADAPTER_NO, SCI_NO_CALLBACK,
           SCI_NO_ARG, SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
     } while (error != SCI_ERR_OK);
 
