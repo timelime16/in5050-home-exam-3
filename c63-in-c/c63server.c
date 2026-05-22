@@ -126,9 +126,12 @@ static void connect_remote_segment(sci_desc_t *sd, unsigned int worker_id)
 {
     sci_error_t error;
 
-    SCIConnectSegment(*sd, &remote_seg, worker_id, GET_SEGMENTID(WORKER), ADAPTER_NO, SCI_NO_CALLBACK,
-        SCI_NO_ARG, SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
-    sci_check_and_fail(error, "SCIConnectSegment", "server");
+    do 
+    {
+      SCIConnectSegment(*sd, &remote_seg, worker_id, GET_SEGMENTID(WORKER), ADAPTER_NO, SCI_NO_CALLBACK,
+          SCI_NO_ARG, SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
+      fprintf("retrying connection (server to worker)\n");
+    } while (error != SCI_ERR_OK);
 }
 
 static sci_callback_action_t dma_completion_callback(void* arg, sci_dma_queue_t dma_queue, sci_error_t status)
