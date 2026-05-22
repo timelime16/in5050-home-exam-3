@@ -391,6 +391,8 @@ int main(int argc, char **argv)
   dma.config->writer = writer_node;
   dma.config->initialized = 1;
 
+  fprintf(stderr, "worker prune init alr\n");
+
   connect_remote_segment(&dma);
 
   struct c63_common *cm = init_c63_enc(width, height);
