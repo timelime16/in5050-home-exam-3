@@ -216,9 +216,17 @@ int main(int argc, char **argv)
 
 
   /* Initialize the SISCI library */
+
+  fprintf(stderr, "reached here 1 writer\n");
   sci_init(&writer_ctx);
+
+  fprintf(stderr, "reached here 2 writer\n");
   sci_init_writer(&writer_ctx);
+
+  fprintf(stderr, "reached here 3 writer\n");
   config = sci_init_control(&writer_ctx);
+
+  fprintf(stderr, "reached here 4 writer\n");
 
   struct c63_common *cm = init_c63_enc(width, height);
   cm->e_ctx.fp = outfile;

@@ -187,25 +187,16 @@ static config_t *sci_init_control(worker_t *worker)
 
   fprintf(stderr, "connection done! ctrl (worker to server)\n");
 
-
-  fprintf(stderr, "reached here 5 worker\n");
-
   sci_map_t remote_map;
 
   config_t *config = (config_t *) SCIMapRemoteSegment(reader_remote_control_seg, &remote_map, 0, sizeof(config_t),
       NULL, SCI_NO_FLAGS, &error);
   sci_check_and_fail(error, "SCIMapRemoteSegment", "worker");
 
-
-  fprintf(stderr, "reached here 6 worker\n");
-
   while (!config->initialized);
   width = config->width;
   height = config->height;
   writer_node = config->writer;
-
-
-  fprintf(stderr, "reached here 7 worker\n");
 
   return config;
 }
@@ -378,17 +369,14 @@ int main(int argc, char **argv)
   size_t aligned_size = ((total_size + 4095) / 4096) * 4096;
   sci_init_worker(&worker_ctx, aligned_size);
 
-  fprintf(stderr, "reached here 1 worker\n");
   sci_init_dma_ctx(&dma);
   
-  fprintf(stderr, "reached here 2 worker\n");
   dma.config->dma_queue_state[0] = dma.config->dma_queue_state[1] = BUSY;
   dma.config->width = width;
   dma.config->height = height;
   dma.config->writer = writer_node;
   dma.config->initialized = 1;
 
-  fprintf(stderr, "reached here 3 worker\n");
 
   connect_remote_segment(&dma);
 
