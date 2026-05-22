@@ -423,7 +423,6 @@ int main(int argc, char **argv)
 
     uint8_t *frame = worker_ctx.frame_buffer + buf * total_size;
 
-  fprintf(stderr, "worker prune 10\n");
     memcpy(image.Y, frame, y_size);
     memcpy(image.U, frame + y_size, uv_size);
     memcpy(image.V, frame + y_size + uv_size, uv_size);
@@ -433,7 +432,6 @@ int main(int argc, char **argv)
     // Send to writer
     wait_for_writer(dma.config);
 
-  fprintf(stderr, "worker prune 11\n");
 
     writer_job_ctx->keyframe = cm->curframe->keyframe;
     memcpy(writer_job_ctx->Ydct, cm->curframe->residuals->Ydct, cm->ypw * cm->yph * sizeof(int16_t));
@@ -443,10 +441,7 @@ int main(int argc, char **argv)
     memcpy(writer_job_ctx->mbs_U, cm->curframe->mbs[1], (cm->mb_cols/2) * (cm->mb_rows/2) * sizeof(struct macroblock));
     memcpy(writer_job_ctx->mbs_V, cm->curframe->mbs[2], (cm->mb_cols/2) * (cm->mb_rows/2) * sizeof(struct macroblock));
 
-  fprintf(stderr, "worker prune 12\n");
     send_encoded_data(&dma);
-
-  fprintf(stderr, "worker prune 13\n");
 
     reader_config->dma_queue_state[buf] = AVAILABLE;
 
@@ -459,7 +454,9 @@ int main(int argc, char **argv)
   dma.config->dma_queue_state[0] = dma.config->dma_queue_state[1] = TRANSFER_COMPLETED;
   while (dma.config->complete != ACKNOWLEDGED);
 
-  reader_config->dma_queue_state[buf] = ACKNOWLEDGED;
+  printf("worker prune writer ack\n");
+
+  reader_config->complete = ACKNOWLEDGED;
 
   sci_cleanup(&worker_ctx, &dma);
   free_c63_enc(cm);
