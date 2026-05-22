@@ -315,7 +315,7 @@ static void send_encoded_data(dma_buffer_t *dma)
 
 static inline void wait_for_writer(config_t *config)
 {
-    while (config->dma_queue_state[0] == BUSY); //{fprintf(stderr, "worker prune waiting for writer\n");}
+    while (config->dma_queue_state[0] == BUSY) {fprintf(stderr, "worker prune waiting for writer\n");}
 }
 
 static void sci_cleanup(worker_t *worker, dma_buffer_t *dma)
@@ -403,7 +403,7 @@ int main(int argc, char **argv)
 
   while (1) 
   {
-    while (reader_config->dma_queue_state[buf] != TRANSFER_COMPLETED) {fprintf(stderr,"worker prune waiting for transfer complete\n");}
+    while (reader_config->dma_queue_state[buf] != TRANSFER_COMPLETED) ;//{fprintf(stderr,"worker prune waiting for transfer complete\n");}
     reader_config->dma_queue_state[buf] = BUSY;
 
     if (reader_config->complete == DONE) { break; }
