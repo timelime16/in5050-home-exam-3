@@ -96,11 +96,11 @@ typedef struct dma_buffer
     config_t *config;
 } dma_buffer_t;
 
-static void sci_check_and_fail(sci_error_t err, const char *ctx)
+static void sci_check_and_fail(sci_error_t err, const char *ctx, const char *loc)
 {
     if (err != SCI_ERR_OK)
     {
-        fprintf(stderr, "SCI error in %s: %s\n", ctx, SCIGetErrorString(err));
+        fprintf(stderr, "SCI error in %s (%s): %s\n", ctx, loc, SCIGetErrorString(err));
         SCITerminate();
         exit(EXIT_FAILURE);
     }

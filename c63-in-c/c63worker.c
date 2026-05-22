@@ -169,10 +169,10 @@ static void sci_init(worker_t *worker)
   sci_error_t error;
 
   SCIInitialize(SCI_NO_FLAGS, &error);
-  sci_check_and_fail(error, "SCIInitialize");
+  sci_check_and_fail(error, "SCIInitialize", "worker");
 
   SCIOpen(&worker->sd, SCI_NO_FLAGS, &error);
-  sci_check_and_fail(error, "SCIOpen");
+  sci_check_and_fail(error, "SCIOpen", "worker");
 }
 
 static config_t *sci_init_control(worker_t *worker) 
@@ -181,11 +181,11 @@ static config_t *sci_init_control(worker_t *worker)
 
   SCIConnectSegment(worker->sd, &reader_remote_control_seg, server_node, GET_SEGMENTID(READER_WORKER_CTRL), ADAPTER_NO,
       SCI_NO_CALLBACK, SCI_NO_ARG, SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
-  sci_check_and_fail(error, "SCIConnectSegment");
+  sci_check_and_fail(error, "SCIConnectSegment", "worker");
 
   config_t *config = (config_t *) SCIMapRemoteSegment(reader_remote_control_seg, NULL, 0, sizeof(config_t),
       NULL, SCI_NO_FLAGS, &error);
-  sci_check_and_fail(error, "SCIMapRemoteSegment");
+  sci_check_and_fail(error, "SCIMapRemoteSegment", "worker");
 
   while (!config->initialized);
   width = config->width;
@@ -200,42 +200,42 @@ static void sci_init_dma_ctx(dma_buffer_t *dma)
   sci_error_t error;
   
   SCIOpen(&dma->sd, SCI_NO_FLAGS, &error);
-  sci_check_and_fail(error, "SCIOpen");
+  sci_check_and_fail(error, "SCIOpen", "worker");
 
   SCICreateDMAQueue(dma->sd, &dma->dma_queue, ADAPTER_NO, 1, SCI_NO_FLAGS, &error);
-  sci_check_and_fail(error, "SCICreateDMAQueue");
+  sci_check_and_fail(error, "SCICreateDMAQueue", "worker");
 
   // Segment
   SCICreateSegment(dma->sd, &dma->local_segment, GET_SEGMENTID(WORKER), sizeof(writer_job_t), SCI_NO_CALLBACK,
     NULL, SCI_NO_FLAGS, &error);
-  sci_check_and_fail(error, "SCICreateSegment");
+  sci_check_and_fail(error, "SCICreateSegment", "worker");
 
   SCIPrepareSegment(dma->local_segment, ADAPTER_NO, SCI_NO_FLAGS, &error);
-  sci_check_and_fail(error, "SCIPrepareSegment");
+  sci_check_and_fail(error, "SCIPrepareSegment", "worker");
 
   SCISetSegmentAvailable(dma->local_segment, ADAPTER_NO, SCI_NO_FLAGS, &error);
-  sci_check_and_fail(error, "SCISetSegmentAvailable");
+  sci_check_and_fail(error, "SCISetSegmentAvailable", "worker");
 
   dma->segment_map = SCIMapLocalSegment(dma->local_segment, &dma->segment_map, 0, sizeof(writer_job_t), 
     NULL, SCI_NO_FLAGS, &error);
-  sci_check_and_fail(error, "SCIMapLocalSegment");
+  sci_check_and_fail(error, "SCIMapLocalSegment", "worker");
 
   writer_job_ctx = (writer_job_t *) dma->segment_map;
 
   // Control
   SCICreateSegment(dma->sd, &dma->control_segment, GET_SEGMENTID(WORKER_WRITER_CTRL), sizeof(config_t), SCI_NO_CALLBACK,
       NULL, SCI_NO_FLAGS, &error);
-  sci_check_and_fail(error, "SCICreateSegment");
+  sci_check_and_fail(error, "SCICreateSegment", "worker");
 
   SCIPrepareSegment(dma->control_segment, ADAPTER_NO, SCI_NO_FLAGS, &error);
-  sci_check_and_fail(error, "SCIPrepareSegment");
+  sci_check_and_fail(error, "SCIPrepareSegment", "worker");
 
   SCISetSegmentAvailable(dma->control_segment, ADAPTER_NO, SCI_NO_FLAGS, &error);
-  sci_check_and_fail(error, "SCISetSegmentAvailable");
+  sci_check_and_fail(error, "SCISetSegmentAvailable", "worker");
 
   dma->config = (config_t *) SCIMapLocalSegment(dma->control_segment, NULL, 0, sizeof(config_t),
       NULL, SCI_NO_FLAGS, &error);
-  sci_check_and_fail(error, "SCIMapLocalSegment");
+  sci_check_and_fail(error, "SCIMapLocalSegment", "worker");
 
   dma->config->initialized = 0;
   dma->config->width = 0;
@@ -255,17 +255,17 @@ static void sci_init_worker(worker_t *worker, size_t total_size)
 
     SCICreateSegment(worker->sd, &worker->frame_segment, GET_SEGMENTID(WORKER), segment_size, SCI_NO_CALLBACK,
       NULL, SCI_NO_FLAGS, &error);
-    sci_check_and_fail(error, "SCICreateSegmen");
+    sci_check_and_fail(error, "SCICreateSegment", "worker");
 
     SCIPrepareSegment(worker->frame_segment, ADAPTER_NO, SCI_NO_FLAGS, &error);
-    sci_check_and_fail(error, "SCIPrepareSegment");
+    sci_check_and_fail(error, "SCIPrepareSegment", "worker");
 
     SCISetSegmentAvailable(worker->frame_segment, ADAPTER_NO, SCI_NO_FLAGS, &error);
-    sci_check_and_fail(error, "SCISetSegmentAvailable");
+    sci_check_and_fail(error, "SCISetSegmentAvailable", "worker");
 
     worker->frame_map = SCIMapLocalSegment(worker->frame_segment, NULL, 0, segment_size, 
       NULL, SCI_NO_FLAGS, &error);
-    sci_check_and_fail(error, "SCIMapLocalSegment");
+    sci_check_and_fail(error, "SCIMapLocalSegment", "worker");
 
     worker->frame_buffer = (uint8_t *) worker->frame_map;
 }
@@ -295,7 +295,7 @@ static void send_encoded_data(dma_buffer_t *dma)
     dma->config->dma_queue_state[0] = TRANSFERRING;
     SCIStartDmaTransfer(dma->dma_queue, dma->local_segment, writer_remote_seg, 0, sizeof(writer_job_t), 0,
         dma_completion_callback, dma, SCI_FLAG_USE_CALLBACK, &error);
-    sci_check_and_fail(error, "SCIStartDMATransfer");
+    sci_check_and_fail(error, "SCIStartDMATransfer", "worker");
 }
 
 static inline void wait_for_writer(config_t *config)

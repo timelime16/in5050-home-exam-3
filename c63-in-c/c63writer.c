@@ -111,10 +111,10 @@ static void sci_init(writer_t *writer)
   sci_error_t error;
 
   SCIInitialize(SCI_NO_FLAGS, &error);
-  sci_check_and_fail(error, "SCIInitialize");
+  sci_check_and_fail(error, "SCIInitialize", "writer");
 
   SCIOpen(&writer->sd, SCI_NO_FLAGS, &error);
-  sci_check_and_fail(error, "SCIOpen");
+  sci_check_and_fail(error, "SCIOpen", "writer");
 }
 
 static config_t *sci_init_control(writer_t *writer) 
@@ -123,11 +123,11 @@ static config_t *sci_init_control(writer_t *writer)
 
   SCIConnectSegment(writer->sd, &worker_remote_control_seg, worker_nodes[0], GET_SEGMENTID(WORKER_WRITER_CTRL), ADAPTER_NO,
       SCI_NO_CALLBACK, SCI_NO_ARG, SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
-  sci_check_and_fail(error, "SCIConnectSegment");
+  sci_check_and_fail(error, "SCIConnectSegment", "writer");
 
   config_t *config = (config_t *) SCIMapRemoteSegment(worker_remote_control_seg, NULL, 0, sizeof(config_t),
       NULL, SCI_NO_FLAGS, &error);
-  sci_check_and_fail(error, "SCIMapRemoteSegment");
+  sci_check_and_fail(error, "SCIMapRemoteSegment", "writer");
 
   while (!config->initialized);
   width = config->width;
@@ -142,17 +142,17 @@ static void sci_init_writer(writer_t *writer)
 
     SCICreateSegment(writer->sd, &writer->writer_job_segment, GET_SEGMENTID(WRITER), sizeof(writer_job_t), SCI_NO_CALLBACK,
       NULL, SCI_NO_FLAGS, &error);
-    sci_check_and_fail(error, "SCICreateSegment");
+    sci_check_and_fail(error, "SCICreateSegment", "writer");
 
     SCIPrepareSegment(writer->writer_job_segment, ADAPTER_NO, SCI_NO_FLAGS, &error);
-    sci_check_and_fail(error, "SCIPrepareSegment");
+    sci_check_and_fail(error, "SCIPrepareSegment", "writer");
 
     SCISetSegmentAvailable(writer->writer_job_segment, ADAPTER_NO, SCI_NO_FLAGS, &error);
-    sci_check_and_fail(error, "SCISetSegmentAvailable");
+    sci_check_and_fail(error, "SCISetSegmentAvailable", "writer");
 
     writer->writer_map = SCIMapLocalSegment(writer->writer_job_segment, NULL, 0, sizeof(writer_job_t), 
       NULL, SCI_NO_FLAGS, &error);
-    sci_check_and_fail(error, "SCIMapLocalSegment");
+    sci_check_and_fail(error, "SCIMapLocalSegment", "writer");
 
     writer->buffer = (writer_job_t *) writer->writer_map;
 }
