@@ -190,7 +190,9 @@ static config_t *sci_init_control(worker_t *worker)
 
   fprintf(stderr, "reached here 5 worker\n");
 
-  config_t *config = (config_t *) SCIMapRemoteSegment(reader_remote_control_seg, NULL, 0, sizeof(config_t),
+  sci_map_t remote_map;
+
+  config_t *config = (config_t *) SCIMapRemoteSegment(reader_remote_control_seg, &remote_map, 0, sizeof(config_t),
       NULL, SCI_NO_FLAGS, &error);
   sci_check_and_fail(error, "SCIMapRemoteSegment", "worker");
 
