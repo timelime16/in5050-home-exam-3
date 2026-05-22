@@ -214,7 +214,7 @@ static void sci_init_dma_ctx(dma_buffer_t *dma)
   // Segment
   SCICreateSegment(dma->sd, &dma->local_segment, GET_SEGMENTID(WORKER), sizeof(writer_job_t), SCI_NO_CALLBACK,
     NULL, SCI_NO_FLAGS, &error);
-  sci_check_and_fail(error, "SCICreateSegment", "worker");
+  sci_check_and_fail(error, "SCICreateSegment", "worker dma ctx");
 
   SCIPrepareSegment(dma->local_segment, ADAPTER_NO, SCI_NO_FLAGS, &error);
   sci_check_and_fail(error, "SCIPrepareSegment", "worker");
@@ -234,7 +234,7 @@ static void sci_init_dma_ctx(dma_buffer_t *dma)
   // Control
   SCICreateSegment(dma->sd, &dma->control_segment, GET_SEGMENTID(WORKER_WRITER_CTRL), sizeof(config_t), SCI_NO_CALLBACK,
       NULL, SCI_NO_FLAGS, &error);
-  sci_check_and_fail(error, "SCICreateSegment", "worker");
+  sci_check_and_fail(error, "SCICreateSegment", "worker writer ctrl");
 
   SCIPrepareSegment(dma->control_segment, ADAPTER_NO, SCI_NO_FLAGS, &error);
   sci_check_and_fail(error, "SCIPrepareSegment", "worker");
@@ -267,7 +267,7 @@ static void sci_init_worker(worker_t *worker, size_t total_size)
 
     SCICreateSegment(worker->sd, &worker->frame_segment, GET_SEGMENTID(WORKER), segment_size, SCI_NO_CALLBACK,
       NULL, SCI_NO_FLAGS, &error);
-    sci_check_and_fail(error, "SCICreateSegment", "worker");
+    sci_check_and_fail(error, "SCICreateSegment", "worker reader");
 
     SCIPrepareSegment(worker->frame_segment, ADAPTER_NO, SCI_NO_FLAGS, &error);
     sci_check_and_fail(error, "SCIPrepareSegment", "worker");
@@ -315,7 +315,7 @@ static void send_encoded_data(dma_buffer_t *dma)
 
 static inline void wait_for_writer(config_t *config)
 {
-    while (config->dma_queue_state[0] == BUSY);
+    while (config->dma_queue_state[0] == BUSY) {fprintf("worker prune waiting for writer\n");}
 }
 
 static void sci_cleanup(worker_t *worker, dma_buffer_t *dma)
@@ -403,7 +403,7 @@ int main(int argc, char **argv)
 
   while (1) 
   {
-    while (reader_config->dma_queue_state[buf] != TRANSFER_COMPLETED);
+    while (reader_config->dma_queue_state[buf] != TRANSFER_COMPLETED) {fprintf(stderr,"worker prune waiting for transfer complete\n");}
     reader_config->dma_queue_state[buf] = BUSY;
 
     if (reader_config->complete == DONE) { break; }
