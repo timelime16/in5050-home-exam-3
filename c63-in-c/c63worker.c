@@ -342,11 +342,6 @@ int main(int argc, char **argv)
   int c;
   int w = 0; /* worker index */
 
-  sci_error_t error;
-  unsigned int node;
-  SCIGetLocalNodeId(ADAPTER_NO, &node, SCI_NO_FLAGS, &error);
-  printf("Running on SCI node %u\n", node);
-
   yuv_t image;
 
   worker_t worker_ctx;
@@ -373,6 +368,11 @@ int main(int argc, char **argv)
 
   // SCI 
   sci_init(&worker_ctx);
+
+  sci_error_t error;
+  unsigned int node;
+  SCIGetLocalNodeId(ADAPTER_NO, &node, SCI_NO_FLAGS, &error);
+  printf("Running on SCI node %u\n", node);
 
   fprintf(stderr, "worker prune 4\n");
   reader_config = sci_init_control(&worker_ctx);
