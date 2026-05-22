@@ -292,7 +292,7 @@ static void send_encoded_data(dma_buffer_t *dma)
     sci_error_t error;
 
     dma->config->dma_queue_state[0] = TRANSFERRING;
-    SCIStartDMATransfer(dma->dma_queue, dma->local_segment, writer_remote_seg, 0, sizeof(writer_job_t), 0,
+    SCIStartDmaTransfer(dma->dma_queue, dma->local_segment, writer_remote_seg, 0, sizeof(writer_job_t), 0,
         dma_completion_callback, dma, SCI_NO_FLAGS, &error);
     sci_check_and_fail(error, "SCIStartDMATransfer");
 }
@@ -312,7 +312,6 @@ static void sci_cleanup(worker_t *worker, dma_buffer_t *dma)
 
   SCIUnmapSegment(dma->segment_map, SCI_NO_FLAGS, &error);
   SCIRemoveSegment(dma->local_segment, SCI_NO_FLAGS, &error);
-  SCIUnmapSegment(dma->config, SCI_NO_FLAGS, &error);
   SCIRemoveSegment(dma->control_segment, SCI_NO_FLAGS, &error);
   SCIDisconnectSegment(writer_remote_seg, SCI_NO_FLAGS, &error);
   SCIRemoveDMAQueue(dma->dma_queue, SCI_NO_FLAGS, &error);
@@ -393,7 +392,7 @@ int main(int argc, char **argv)
     c63_encode_image(cm, &image);
 
     // Send to writer
-    wait_for_writer(&dma.config);
+    wait_for_writer(dma.config);
 
     writer_job_ctx->keyframe = cm->curframe->keyframe;
     memcpy(writer_job_ctx->Ydct, cm->curframe->residuals->Ydct, y_size * sizeof(int16_t));
