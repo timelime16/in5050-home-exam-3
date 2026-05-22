@@ -218,9 +218,6 @@ int main(int argc, char **argv)
   int w = 0; /* worker index */
   uint8_t *image;
 
-  //TODO: REMOVE
-  fprintf(stderr, "reader = %d, worker = %d, writer = %d, rwctrl = %d, wwctrl = %d", GET_SEGMENTID(READER), GET_SEGMENTID(WORKER), GET_SEGMENTID(WRITER), GET_SEGMENTID(READER_WORKER_CTRL), GET_SEGMENTID(WORKER_WRITER_CTRL));
-
   // SCI variables
   dma_buffer_t dma;
   dma_context_t dma_ctx[NUM_SEG];
@@ -262,7 +259,6 @@ int main(int argc, char **argv)
 
   // SCI init
   sci_init(&dma);
-  connect_remote_segment(&dma.sd, worker_nodes[0]);
   
   // control
   sci_init_control(&dma);
@@ -274,6 +270,8 @@ int main(int argc, char **argv)
 
   dma_ctx[0].config = dma_ctx[1].config = dma.config;
   dma_ctx[0].buf = 0; dma_ctx[1].buf = 1;
+
+  connect_remote_segment(&dma.sd, worker_nodes[0]);
 
   input_file = argv[optind];
 

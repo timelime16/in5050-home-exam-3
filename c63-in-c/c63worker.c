@@ -329,9 +329,6 @@ static void sci_cleanup(worker_t *worker, dma_buffer_t *dma)
 
 int main(int argc, char **argv)
 {
-    //TODO: REMOVE
-  fprintf(stderr, "reader = %d, worker = %d, writer = %d, rwctrl = %d, wwctrl = %d", GET_SEGMENTID(READER), GET_SEGMENTID(WORKER), GET_SEGMENTID(WRITER), GET_SEGMENTID(READER_WORKER_CTRL), GET_SEGMENTID(WORKER_WRITER_CTRL));
-
   int c;
   int w = 0; /* worker index */
 
@@ -368,13 +365,14 @@ int main(int argc, char **argv)
   size_t aligned_size = ((total_size + 4095) / 4096) * 4096;
   sci_init_worker(&worker_ctx, aligned_size);
   sci_init_dma_ctx(&dma);
-  connect_remote_segment(&dma.sd);
   
   dma.config->dma_queue_state[0] = dma.config->dma_queue_state[1] = BUSY;
   dma.config->width = width;
   dma.config->height = height;
   dma.config->writer = writer_node;
   dma.config->initialized = 1;
+
+  connect_remote_segment(&dma.sd);
 
   struct c63_common *cm = init_c63_enc(width, height);
 
