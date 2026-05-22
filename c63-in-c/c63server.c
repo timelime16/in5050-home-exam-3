@@ -266,7 +266,7 @@ int main(int argc, char **argv)
   fprintf(stderr, "server prune 2\n");
   // control
   sci_init_control(&dma);
-  dma.config->dma_queue_state[0] = dma.config->dma_queue_state[1] = AVAILABLE;
+  dma.config->dma_queue_state[0] = dma.config->dma_queue_state[1] = BUSY;
   dma.config->width = width;
   dma.config->height = height;
   dma.config->writer = writer_node;
@@ -319,7 +319,7 @@ int main(int argc, char **argv)
     image = read_yuv(infile, &dma, width, height, curr_buf);
     if (!image) { break; }
 
-    printf("Encoding frame %d, \n", numframes);
+    printf("Encoding frame %d, ", numframes);
     send_frame_data(&dma, curr_buf, &dma_ctx[curr_buf]);
     printf("Done!\n");
 

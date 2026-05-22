@@ -406,6 +406,9 @@ int main(int argc, char **argv)
 
   int buf = 0;
 
+
+  reader_config->dma_queue_state[0] = reader_config->dma_queue_state[0] = AVAILABLE;
+
   while (1) 
   {
     while (reader_config->dma_queue_state[buf] != TRANSFER_COMPLETED) {fprintf(stderr,"worker prune waiting for transfer complete\n");}
