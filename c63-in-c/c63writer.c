@@ -125,8 +125,9 @@ static config_t *sci_init_control(writer_t *writer)
   {
     SCIConnectSegment(writer->sd, &worker_remote_control_seg, worker_nodes[0], GET_SEGMENTID(WORKER_WRITER_CTRL), ADAPTER_NO,
         SCI_NO_CALLBACK, SCI_NO_ARG, SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
-    fprintf(stderr, "retrying connection (writer to worker)\n");
   } while (error != SCI_ERR_OK);
+
+  fprintf(stderr, "connection done! ctrl (writer to worker)\n");
 
   config_t *config = (config_t *) SCIMapRemoteSegment(worker_remote_control_seg, NULL, 0, sizeof(config_t),
       NULL, SCI_NO_FLAGS, &error);

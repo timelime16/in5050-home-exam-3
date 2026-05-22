@@ -183,8 +183,9 @@ static config_t *sci_init_control(worker_t *worker)
   {
     SCIConnectSegment(worker->sd, &reader_remote_control_seg, server_node, GET_SEGMENTID(READER_WORKER_CTRL), ADAPTER_NO,
         SCI_NO_CALLBACK, SCI_NO_ARG, SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
-    fprintf(stderr, "retrying connection (worker to server)\n");
   } while (error != SCI_ERR_OK);
+
+  fprintf(stderr, "connection done! ctrl (worker to server)\n");
 
   config_t *config = (config_t *) SCIMapRemoteSegment(reader_remote_control_seg, NULL, 0, sizeof(config_t),
       NULL, SCI_NO_FLAGS, &error);
@@ -281,8 +282,10 @@ static void connect_remote_segment(sci_desc_t *sd)
     {
       SCIConnectSegment(*sd, &writer_remote_seg, writer_node, GET_SEGMENTID(WRITER), ADAPTER_NO, SCI_NO_CALLBACK,
           SCI_NO_ARG, SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
-      fprintf(stderr, "retrying connection (worker to writer)\n");
     } while (error != SCI_ERR_OK);
+
+
+    fprintf(stderr, "connection done! (worker to writer)\n");
 }
 
 static sci_callback_action_t dma_completion_callback(void* arg, sci_dma_queue_t dma_queue, sci_error_t status)
