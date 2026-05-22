@@ -199,7 +199,7 @@ static config_t *sci_init_control(worker_t *worker)
 
   fprintf(stderr, "reached here 6 worker\n");
 
-  while (!config->initialized);
+  while (!config->initialized) {fprintf(stderr, "waiting for init\n");}
   width = config->width;
   height = config->height;
   writer_node = config->writer;
