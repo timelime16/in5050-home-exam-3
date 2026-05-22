@@ -39,7 +39,7 @@ typedef struct
 
     sci_local_segment_t writer_job_segment;
 
-    sci_map_t *writer_map;
+    sci_map_t writer_map;
 
     writer_job_t *buffer;
 
