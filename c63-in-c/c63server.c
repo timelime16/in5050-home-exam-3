@@ -319,7 +319,7 @@ int main(int argc, char **argv)
     image = read_yuv(infile, &dma, width, height, curr_buf);
     if (!image) { break; }
 
-    printf("Encoding frame %d, ", numframes);
+    printf("Encoding frame %d, \n", numframes);
     send_frame_data(&dma, curr_buf, &dma_ctx[curr_buf]);
     printf("Done!\n");
 

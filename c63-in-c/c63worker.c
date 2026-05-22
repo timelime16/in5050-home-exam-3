@@ -388,7 +388,7 @@ int main(int argc, char **argv)
 
   sci_init_dma_ctx(&dma);
   
-  dma.config->dma_queue_state[0] = dma.config->dma_queue_state[1] = BUSY;
+  dma.config->dma_queue_state[0] = dma.config->dma_queue_state[1] = AVAILABLE;
   dma.config->width = width;
   dma.config->height = height;
   dma.config->writer = writer_node;
