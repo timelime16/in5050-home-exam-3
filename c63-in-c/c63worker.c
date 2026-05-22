@@ -412,13 +412,14 @@ int main(int argc, char **argv)
 
   while (1) 
   {
-    while (reader_config->dma_queue_state[buf] != TRANSFER_COMPLETED) {fprintf(stderr,"worker prune waiting for transfer complete\n");}
+    while (reader_config->dma_queue_state[buf] != TRANSFER_COMPLETED) ;//{fprintf(stderr,"worker prune waiting for transfer complete\n");}
     reader_config->dma_queue_state[buf] = BUSY;
 
     if (reader_config->complete == DONE) { break; }
 
     uint8_t *frame = worker_ctx.frame_buffer + buf * total_size;
 
+  fprintf(stderr, "worker prune 10\n");
     memcpy(image.Y, frame, y_size);
     memcpy(image.U, frame + y_size, uv_size);
     memcpy(image.V, frame + y_size + uv_size, uv_size);
@@ -428,6 +429,8 @@ int main(int argc, char **argv)
     // Send to writer
     wait_for_writer(dma.config);
 
+  fprintf(stderr, "worker prune 11\n");
+
     writer_job_ctx->keyframe = cm->curframe->keyframe;
     memcpy(writer_job_ctx->Ydct, cm->curframe->residuals->Ydct, cm->ypw * cm->yph * sizeof(int16_t));
     memcpy(writer_job_ctx->Udct, cm->curframe->residuals->Udct, cm->upw * cm->uph * sizeof(int16_t));
@@ -436,7 +439,10 @@ int main(int argc, char **argv)
     memcpy(writer_job_ctx->mbs_U, cm->curframe->mbs[1], (cm->mb_cols/2) * (cm->mb_rows/2) * sizeof(struct macroblock));
     memcpy(writer_job_ctx->mbs_V, cm->curframe->mbs[2], (cm->mb_cols/2) * (cm->mb_rows/2) * sizeof(struct macroblock));
 
+  fprintf(stderr, "worker prune 12\n");
     send_encoded_data(&dma);
+
+  fprintf(stderr, "worker prune 13\n");
 
     reader_config->dma_queue_state[buf] = AVAILABLE;
 
