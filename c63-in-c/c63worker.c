@@ -222,6 +222,8 @@ static void sci_init_dma_ctx(dma_buffer_t *dma)
   SCISetSegmentAvailable(dma->local_segment, ADAPTER_NO, SCI_NO_FLAGS, &error);
   sci_check_and_fail(error, "SCISetSegmentAvailable", "worker");
 
+
+  fprintf(stderr, "worker prune 1\n");
   sci_map_t local_map;
   dma->segment_map = SCIMapLocalSegment(dma->local_segment, &local_map, 0, sizeof(writer_job_t), 
     NULL, SCI_NO_FLAGS, &error);
@@ -240,9 +242,12 @@ static void sci_init_dma_ctx(dma_buffer_t *dma)
   SCISetSegmentAvailable(dma->control_segment, ADAPTER_NO, SCI_NO_FLAGS, &error);
   sci_check_and_fail(error, "SCISetSegmentAvailable", "worker");
 
+  fprintf(stderr, "worker prune 2\n");
   dma->config = (config_t *) SCIMapLocalSegment(dma->control_segment, &local_map, 0, sizeof(config_t),
       NULL, SCI_NO_FLAGS, &error);
   sci_check_and_fail(error, "SCIMapLocalSegment", "worker");
+
+  fprintf(stderr, "worker prune 3\n");
 
   dma->config->initialized = 0;
   dma->config->width = 0;
