@@ -261,8 +261,9 @@ int main(int argc, char **argv)
 //   struct c63_common *cm = init_c63_enc(width, height);
 
   // SCI init
+  fprintf(stderr, "server prune 1\n");
   sci_init(&dma);
-  
+  fprintf(stderr, "server prune 2\n");
   // control
   sci_init_control(&dma);
   dma.config->dma_queue_state[0] = dma.config->dma_queue_state[1] = BUSY;
@@ -271,8 +272,10 @@ int main(int argc, char **argv)
   dma.config->writer = writer_node;
   dma.config->initialized = 1;
 
+  fprintf(stderr, "server prune 3\n");
   dma_ctx[0].config = dma_ctx[1].config = dma.config;
   dma_ctx[0].buf = 0; dma_ctx[1].buf = 1;
+  fprintf(stderr, "server prune 4\n");
 
   connect_remote_segment(&dma, worker_nodes[0]);
 
