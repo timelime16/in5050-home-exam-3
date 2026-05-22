@@ -15,6 +15,7 @@
 #include "common.h"
 #include "c63.h"
 #include "c63_write.h"
+#include "tables.h"
 #include "sci_common.h"
 
 static char *output_file;
