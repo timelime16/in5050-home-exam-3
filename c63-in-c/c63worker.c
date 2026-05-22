@@ -358,7 +358,7 @@ int main(int argc, char **argv)
   size_t y_size = width * height;
   size_t uv_size = y_size / 4;
   size_t total_size = y_size + 2 * uv_size;
-  size_t aligned_size = ((reader_config->total_size + 4095) / 4096) * 4096;
+  size_t aligned_size = ((total_size + 4095) / 4096) * 4096;
   sci_init_worker(&worker_ctx, aligned_size);
   sci_init_dma_ctx(&dma);
   connect_remote_segment(&dma.sd);
@@ -393,7 +393,7 @@ int main(int argc, char **argv)
     c63_encode_image(cm, &image);
 
     // Send to writer
-    wait_for_writer(&dma->config);
+    wait_for_writer(&dma.config);
 
     writer_job_ctx->keyframe = cm->curframe->keyframe;
     memcpy(writer_job_ctx->Ydct, cm->curframe->residuals->Ydct, y_size * sizeof(int16_t));

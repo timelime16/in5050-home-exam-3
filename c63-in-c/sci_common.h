@@ -85,7 +85,7 @@ typedef struct dma_buffer
     sci_local_segment_t local_segment;
     sci_dma_queue_t dma_queue;
 
-    void *segment_map;
+    sci_map_t segment_map;
 
     size_t y_size;
     size_t uv_size;
