@@ -269,6 +269,8 @@ int main(int argc, char **argv)
   dma.config->writer = writer_node;
   dma.config->initialized = 1;
 
+  fprintf(stderr, "server: init alr");
+
   dma_ctx[0].config = dma_ctx[1].config = dma.config;
   dma_ctx[0].buf = 0; dma_ctx[1].buf = 1;
 
