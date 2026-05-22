@@ -121,6 +121,8 @@ static config_t *sci_init_control(writer_t *writer)
 {
   sci_error_t error;
 
+
+  fprintf(stderr, "reached here 8 writer\n");
   do 
   {
     SCIConnectSegment(writer->sd, &worker_remote_control_seg, worker_nodes[0], GET_SEGMENTID(WORKER_WRITER_CTRL), ADAPTER_NO,
