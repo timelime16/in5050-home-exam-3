@@ -123,7 +123,7 @@ static config_t *sci_init_control(writer_t *writer)
 
 
   fprintf(stderr, "reached here 8 writer\n");
-  int i = 0
+  int i = 0;
   do 
   {
     SCIConnectSegment(writer->sd, &worker_remote_control_seg, worker_nodes[0], GET_SEGMENTID(WORKER_WRITER_CTRL), ADAPTER_NO,
