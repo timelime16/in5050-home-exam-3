@@ -94,6 +94,7 @@ typedef struct dma_buffer
 
     // control
     sci_local_segment_t control_segment;
+    sci_map_t control_map;
     config_t *config;
 } dma_buffer_t;
 

@@ -116,11 +116,9 @@ static void sci_init(dma_buffer_t *dma)
     SCISetSegmentAvailable(dma->local_segment, ADAPTER_NO, SCI_NO_FLAGS, &error);
     sci_check_and_fail(error, "SCISetSegmentAvailable", "server");
 
-    sci_map_t local_map;
-    dma->segment_map = SCIMapLocalSegment(dma->local_segment, &local_map, 0, 2 * aligned_size, 
+    buffer = (uint8_t *) SCIMapLocalSegment(dma->local_segment, &dma->segment_map, 0, 2 * aligned_size, 
       NULL, SCI_NO_FLAGS, &error);
     sci_check_and_fail(error, "SCIMapLocalSegment", "server");
-    buffer = (uint8_t *) dma->segment_map;
 }
 
 static void connect_remote_segment(dma_buffer_t *dma, unsigned int worker_id)
@@ -200,9 +198,7 @@ static void sci_init_control(dma_buffer_t *dma)
     SCISetSegmentAvailable(dma->control_segment, ADAPTER_NO, SCI_NO_FLAGS, &error);
     sci_check_and_fail(error, "SCISetSegmentAvailable", "server");
 
-    sci_map_t local_map;
-
-    dma->config = (config_t *) SCIMapLocalSegment(dma->control_segment, &local_map, 0, size,
+    dma->config = (config_t *) SCIMapLocalSegment(dma->control_segment, &dma->control_map, 0, size,
         NULL, SCI_NO_FLAGS, &error);
     sci_check_and_fail(error, "SCIMapLocalSegment", "server");
 
