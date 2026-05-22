@@ -211,7 +211,7 @@ static void sci_init_dma_ctx(dma_buffer_t *dma)
   SCIOpen(&dma->sd, SCI_NO_FLAGS, &error);
   sci_check_and_fail(error, "SCIOpen", "worker");
 
-  SCICreateDMAQueue(dma->sd, &dma->dma_queue, ADAPTER_NO, 1, SCI_NO_FLAGS, &error);
+  SCICreateDMAQueue(dma->sd, &dma->dma_queue, ADAPTER_NO, 4, SCI_NO_FLAGS, &error);
   sci_check_and_fail(error, "SCICreateDMAQueue", "worker");
 
   // Segment

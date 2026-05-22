@@ -102,7 +102,7 @@ static void sci_init(dma_buffer_t *dma)
     SCIOpen(&dma->sd, SCI_NO_FLAGS, &error);
     sci_check_and_fail(error, "SCIOpen", "server");
 
-    SCICreateDMAQueue(dma->sd, &dma->dma_queue, ADAPTER_NO, 1, SCI_NO_FLAGS, &error);
+    SCICreateDMAQueue(dma->sd, &dma->dma_queue, ADAPTER_NO, 4, SCI_NO_FLAGS, &error);
     sci_check_and_fail(error, "SCICreateDMAQueue", "server");
 
     // Segment
@@ -149,9 +149,6 @@ static sci_callback_action_t dma_completion_callback(void* arg, sci_dma_queue_t 
 
 static void send_frame_data(dma_buffer_t *dma, int buf, dma_context_t *dma_ctx)
 {
-  // TODO: remove when doing 2 workers
-  buf = 0;
-
     sci_error_t error;
 
     size_t offset = buf * dma->total_size;
