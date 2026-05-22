@@ -343,7 +343,9 @@ int main(int argc, char **argv)
   int w = 0; /* worker index */
 
   sci_error_t error;
-  printf("Running on SCI node %u\n", SCIGetLocalNodeId(0, &error));
+  unsigned int node;
+  SCIGetLocalNodeId(ADAPTER_NO, &node, SCI_NO_FLAGS, &error);
+  printf("Running on SCI node %u\n", node);
 
   yuv_t image;
 
