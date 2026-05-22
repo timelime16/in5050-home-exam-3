@@ -34,6 +34,7 @@ extern char *optarg;
 
 // SCI variables
 static sci_remote_segment_t remote_seg;
+static sci_map_t remote_map;
 
 typedef struct
 {
@@ -131,6 +132,9 @@ static void connect_remote_segment(dma_buffer_t *dma, unsigned int worker_id)
           SCI_NO_ARG, SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
     } while (error != SCI_ERR_OK);
 
+    SCIMapRemoteSegment(remote_seg, &remote_map, 0, 2 * dma->total_size, NULL, SCI_NO_FLAGS, &error);
+    sci_check_and_fail(error, "SCIMapRemoteSegment", "server");
+
     printf("connection done! (server to worker)\n");
 }
 
@@ -154,7 +158,7 @@ static void send_frame_data(dma_buffer_t *dma, int buf, dma_context_t *dma_ctx)
 
     dma->config->dma_queue_state[buf] = TRANSFERRING;
     SCIStartDmaTransfer(dma->dma_queue, dma->local_segment, remote_seg, offset, dma->total_size, offset,
-        NULL, NULL, SCI_NO_FLAGS, &error);
+        dma_completion_callback, dma_ctx, SCI_FLAG_USE_CALLBACK, &error);
     sci_check_and_fail(error, "SCIStartDMATransfer", "server");
 }
 
