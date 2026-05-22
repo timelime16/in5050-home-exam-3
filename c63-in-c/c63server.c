@@ -284,14 +284,14 @@ int main(int argc, char **argv)
   if (limit_numframes) { printf("Limited to %d frames.\n", limit_numframes); }
 
   FILE *infile = fopen(input_file, "rb");
-  fprintf(stderr, "reached here server\n");
 
   if (infile == NULL)
   {
     perror("fopen");
     exit(EXIT_FAILURE);
   }
-
+  
+  fprintf(stderr, "reached here server\n");
   /* Encode input frames */
   int numframes = 0;
 
