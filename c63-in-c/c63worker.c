@@ -288,10 +288,6 @@ static sci_callback_action_t dma_completion_callback(void* arg, sci_dma_queue_t 
   return SCI_CALLBACK_CONTINUE;
 }
 
-static void dma_completion_callback(void *arg)
-{
-}
-
 static void send_encoded_data(dma_buffer_t *dma)
 {
     sci_error_t error;
