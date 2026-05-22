@@ -127,7 +127,7 @@ static config_t *sci_init_control(writer_t *writer)
   {
     SCIConnectSegment(writer->sd, &worker_remote_control_seg, worker_nodes[0], GET_SEGMENTID(WORKER_WRITER_CTRL), ADAPTER_NO,
         SCI_NO_CALLBACK, SCI_NO_ARG, SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
-    fprintf("reached here 9 writer\n");
+    fprintf(stderr, "reached here 9 writer\n");
   } while (error != SCI_ERR_OK);
 
   fprintf(stderr, "connection done! ctrl (writer to worker)\n");

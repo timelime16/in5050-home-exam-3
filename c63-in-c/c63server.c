@@ -180,7 +180,7 @@ static void sci_cleanup(dma_buffer_t *dma)
 
 static void wait_for_worker(config_t *config, int buf)
 {
-    while (config->dma_queue_state[buf] == BUSY) {fprintf("server prune wait for worker\n");}
+    while (config->dma_queue_state[buf] == BUSY) {fprintf(stderr, "server prune wait for worker\n");}
 }
 
 static void sci_init_control(dma_buffer_t *dma)
@@ -328,7 +328,7 @@ int main(int argc, char **argv)
   // send signal to close workers
   dma.config->complete = DONE;
   dma.config->dma_queue_state[0] = dma.config->dma_queue_state[1] = TRANSFER_COMPLETED;
-  while (dma.config->complete != ACKNOWLEDGED) {fprintf("server prune waiting ack\n");}
+  while (dma.config->complete != ACKNOWLEDGED) {fprintf(stderr, "server prune waiting ack\n");}
 
   fclose(infile);
   sci_cleanup(&dma);
