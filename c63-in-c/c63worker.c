@@ -407,7 +407,7 @@ int main(int argc, char **argv)
   int buf = 0;
 
 
-  reader_config->dma_queue_state[0] = reader_config->dma_queue_state[0] = AVAILABLE;
+  reader_config->dma_queue_state[0] = reader_config->dma_queue_state[1] = AVAILABLE;
 
   while (1) 
   {
@@ -428,9 +428,9 @@ int main(int argc, char **argv)
     wait_for_writer(dma.config);
 
     writer_job_ctx->keyframe = cm->curframe->keyframe;
-    memcpy(writer_job_ctx->Ydct, cm->curframe->residuals->Ydct, y_size * sizeof(int16_t));
-    memcpy(writer_job_ctx->Udct, cm->curframe->residuals->Udct, uv_size * sizeof(int16_t));
-    memcpy(writer_job_ctx->Vdct, cm->curframe->residuals->Vdct, uv_size * sizeof(int16_t));
+    memcpy(writer_job_ctx->Ydct, cm->curframe->residuals->Ydct, cm->ypw * cm->yph * sizeof(int16_t));
+    memcpy(writer_job_ctx->Udct, cm->curframe->residuals->Udct, cm->upw * cm->uph * sizeof(int16_t));
+    memcpy(writer_job_ctx->Vdct, cm->curframe->residuals->Vdct, cm->vpw * cm->vph * sizeof(int16_t));
     memcpy(writer_job_ctx->mbs_Y, cm->curframe->mbs[0], cm->mb_cols * cm->mb_rows * sizeof(struct macroblock));
     memcpy(writer_job_ctx->mbs_U, cm->curframe->mbs[1], (cm->mb_cols/2) * (cm->mb_rows/2) * sizeof(struct macroblock));
     memcpy(writer_job_ctx->mbs_V, cm->curframe->mbs[2], (cm->mb_cols/2) * (cm->mb_rows/2) * sizeof(struct macroblock));
