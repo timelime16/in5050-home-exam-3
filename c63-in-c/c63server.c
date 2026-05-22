@@ -154,7 +154,7 @@ static void send_frame_data(dma_buffer_t *dma, int buf, dma_context_t *dma_ctx)
 
     dma->config->dma_queue_state[buf] = TRANSFERRING;
     SCIStartDmaTransfer(dma->dma_queue, dma->local_segment, remote_seg, offset, dma->total_size, offset,
-        dma_completion_callback, dma_ctx, SCI_FLAG_USE_CALLBACK, &error);
+        NULL, NULL, SCI_NO_FLAGS, &error);
     sci_check_and_fail(error, "SCIStartDMATransfer", "server");
 }
 
