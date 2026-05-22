@@ -34,6 +34,7 @@ static int height = 0;
 static sci_remote_segment_t writer_remote_seg;
 static sci_remote_segment_t reader_remote_control_seg;
 
+static sci_map_t writer_remote_map;
 static sci_map_t reader_remote_control_map;
 
 
@@ -292,6 +293,9 @@ static void connect_remote_segment(dma_buffer_t *dma)
           SCI_NO_ARG, SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
     } while (error != SCI_ERR_OK);
 
+    SCIMapRemoteSegment(writer_remote_seg, &writer_remote_map, 0, sizeof(writer_job_t), NULL, SCI_NO_FLAGS, &error);
+    sci_check_and_fail(error, "SCIMapRemoteSegment", "server");
+
     fprintf(stderr, "connection done! (worker to writer)\n");
 }
 
@@ -314,7 +318,7 @@ static void send_encoded_data(dma_buffer_t *dma)
 
 static inline void wait_for_writer(config_t *config)
 {
-    while (config->dma_queue_state[0] == BUSY) {fprintf(stderr, "worker prune waiting for writer\n");}
+    while (config->dma_queue_state[0] == BUSY); //{fprintf(stderr, "worker prune waiting for writer\n");}
 }
 
 static void sci_cleanup(worker_t *worker, dma_buffer_t *dma)

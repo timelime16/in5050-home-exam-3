@@ -183,7 +183,7 @@ static void sci_cleanup(dma_buffer_t *dma)
 
 static void wait_for_worker(config_t *config, int buf)
 {
-    while (config->dma_queue_state[buf] == BUSY) {fprintf(stderr, "server prune wait for worker\n");}
+    while (config->dma_queue_state[buf] == BUSY);// {fprintf(stderr, "server prune wait for worker\n");}
 }
 
 static void sci_init_control(dma_buffer_t *dma)
