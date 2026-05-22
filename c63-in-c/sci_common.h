@@ -30,6 +30,7 @@ typedef enum
 {
     READER,
     WORKER,
+    WORKER_TO_WRITER_DATA,
     WRITER,
     READER_WORKER_CTRL,
     WORKER_WRITER_CTRL,
