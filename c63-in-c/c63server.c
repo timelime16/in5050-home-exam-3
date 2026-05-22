@@ -129,7 +129,7 @@ static void connect_remote_segment(sci_desc_t *sd, unsigned int worker_id)
     do 
     {
         SCIConnectSegment(*sd, &remote_seg, worker_id, GET_SEGMENTID(WORKER), ADAPTER_NO, SCI_NO_CALLBACK,
-            NULL, SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
+            SCI_NO_ARG, SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
     } while (error != SCI_ERR_OK);
 }
 

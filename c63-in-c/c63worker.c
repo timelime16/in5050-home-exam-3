@@ -180,7 +180,7 @@ static config_t *sci_init_control(worker_t *worker)
   sci_error_t error;
 
   SCIConnectSegment(worker->sd, &reader_remote_control_seg, server_node, GET_SEGMENTID(READER_WORKER_CTRL), ADAPTER_NO,
-      SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
+      SCI_NO_CALLBACK, SCI_NO_ARG, SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
   sci_check_and_fail(error, "SCIConnectSegment");
 
   config_t *config = (config_t *) SCIMapRemoteSegment(reader_remote_control_seg, NULL, 0, sizeof(config_t),
@@ -277,7 +277,7 @@ static void connect_remote_segment(sci_desc_t *sd)
     do 
     {
         SCIConnectSegment(*sd, &writer_remote_seg, writer_node, GET_SEGMENTID(WRITER), ADAPTER_NO, SCI_NO_CALLBACK,
-            NULL, SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
+            SCI_NO_ARG, SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
     } while (error != SCI_ERR_OK);
 }
 

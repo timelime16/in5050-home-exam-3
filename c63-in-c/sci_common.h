@@ -10,7 +10,8 @@
 #include "c63.h"
 
 #define SCI_NO_FLAGS    0
-#define SCI_NO_CALLBACK NULL
+#define SCI_NO_CALLBACK 0
+#define SCI_NO_ARG      0
 
 #define NUM_SEG 2
 
