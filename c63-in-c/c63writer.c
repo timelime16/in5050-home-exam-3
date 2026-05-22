@@ -129,11 +129,15 @@ static config_t *sci_init_control(writer_t *writer)
 
   fprintf(stderr, "connection done! ctrl (writer to worker)\n");
 
-  sci_map_t remote_map;
 
+  fprintf(stderr, "reached here 6 writer\n");
+
+  sci_map_t remote_map;
   config_t *config = (config_t *) SCIMapRemoteSegment(worker_remote_control_seg, &remote_map, 0, sizeof(config_t),
       NULL, SCI_NO_FLAGS, &error);
   sci_check_and_fail(error, "SCIMapRemoteSegment", "writer");
+
+  fprintf(stderr, "reached here 7 writer\n");
 
   while (!config->initialized);
   width = config->width;
