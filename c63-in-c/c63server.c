@@ -332,7 +332,7 @@ int main(int argc, char **argv)
   // send signal to close workers
   dma.config->complete = DONE;
   dma.config->dma_queue_state[0] = dma.config->dma_queue_state[1] = TRANSFER_COMPLETED;
-  while (dma.config->complete != ACKNOWLEDGED) {fprintf(stderr, "server prune waiting ack\n");}
+  while (dma.config->complete != ACKNOWLEDGED); //{fprintf(stderr, "server prune waiting ack\n");}
 
   fclose(infile);
   sci_cleanup(&dma);
