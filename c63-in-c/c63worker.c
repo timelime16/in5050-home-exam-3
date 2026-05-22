@@ -212,7 +212,7 @@ static void sci_init_dma_ctx(dma_buffer_t *dma)
   sci_check_and_fail(error, "SCICreateDMAQueue", "worker");
 
   // Segment
-  SCICreateSegment(dma->sd, &dma->local_segment, GET_SEGMENTID(WORKER_TO_WRITER_DATA), sizeof(writer_job_t), SCI_NO_CALLBACK,
+  SCICreateSegment(dma->sd, &dma->local_segment, GET_SEGMENTID(WORKER_ENCODED), sizeof(writer_job_t), SCI_NO_CALLBACK,
     NULL, SCI_NO_FLAGS, &error);
   sci_check_and_fail(error, "SCICreateSegment", "worker dma ctx");
 
@@ -265,7 +265,7 @@ static void sci_init_worker(worker_t *worker, size_t total_size)
 
     size_t segment_size = 2 * total_size;
 
-    SCICreateSegment(worker->sd, &worker->frame_segment, GET_SEGMENTID(WORKER), segment_size, SCI_NO_CALLBACK,
+    SCICreateSegment(worker->sd, &worker->frame_segment, GET_SEGMENTID(WORKER_DATA), segment_size, SCI_NO_CALLBACK,
       NULL, SCI_NO_FLAGS, &error);
     sci_check_and_fail(error, "SCICreateSegment", "worker reader");
 
