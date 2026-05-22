@@ -26,6 +26,8 @@ static uint32_t worker_nodes[MAX_NUM_WORKERS] = {};
 static int width = 0;
 static int height = 0;
 
+static sci_map_t worker_remote_control_map;
+
 
 /* getopt */
 extern int optind;
@@ -37,7 +39,7 @@ typedef struct
 
     sci_local_segment_t writer_job_segment;
 
-    void *writer_map;
+    sci_map_t *writer_map;
 
     writer_job_t *buffer;
 
@@ -138,8 +140,7 @@ static config_t *sci_init_control(writer_t *writer)
 
   fprintf(stderr, "reached here 6 writer\n");
 
-  sci_map_t remote_map;
-  config_t *config = (config_t *) SCIMapRemoteSegment(worker_remote_control_seg, &remote_map, 0, sizeof(config_t),
+  config_t *config = (config_t *) SCIMapRemoteSegment(worker_remote_control_seg, &worker_remote_control_map, 0, sizeof(config_t),
       NULL, SCI_NO_FLAGS, &error);
   sci_check_and_fail(error, "SCIMapRemoteSegment", "writer");
 
@@ -166,12 +167,9 @@ static void sci_init_writer(writer_t *writer)
     SCISetSegmentAvailable(writer->writer_job_segment, ADAPTER_NO, SCI_NO_FLAGS, &error);
     sci_check_and_fail(error, "SCISetSegmentAvailable", "writer");
 
-    sci_map_t local_map;
-    writer->writer_map = SCIMapLocalSegment(writer->writer_job_segment, &local_map, 0, sizeof(writer_job_t), 
+    writer->buffer = (writer_job_t *) SCIMapLocalSegment(writer->writer_job_segment, &writer->writer_map, 0, sizeof(writer_job_t), 
       NULL, SCI_NO_FLAGS, &error);
     sci_check_and_fail(error, "SCIMapLocalSegment", "writer");
-
-    writer->buffer = (writer_job_t *) writer->writer_map;
 }
 
 static void sci_cleanup(writer_t *writer)

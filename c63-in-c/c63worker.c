@@ -34,6 +34,9 @@ static int height = 0;
 static sci_remote_segment_t writer_remote_seg;
 static sci_remote_segment_t reader_remote_control_seg;
 
+static sci_map_t reader_remote_control_map;
+
+
 static writer_job_t *writer_job_ctx;
 
 typedef struct
@@ -42,7 +45,7 @@ typedef struct
 
     sci_local_segment_t frame_segment;
 
-    void *frame_map;
+    sci_map_t frame_map;
 
     uint8_t *frame_buffer;
 
@@ -190,9 +193,7 @@ static config_t *sci_init_control(worker_t *worker)
 
   fprintf(stderr, "connection done! ctrl (worker to server)\n");
 
-  sci_map_t remote_map;
-
-  config_t *config = (config_t *) SCIMapRemoteSegment(reader_remote_control_seg, &remote_map, 0, sizeof(config_t),
+  config_t *config = (config_t *) SCIMapRemoteSegment(reader_remote_control_seg, &reader_remote_control_map, 0, sizeof(config_t),
       NULL, SCI_NO_FLAGS, &error);
   sci_check_and_fail(error, "SCIMapRemoteSegment", "worker");
 
@@ -227,12 +228,10 @@ static void sci_init_dma_ctx(dma_buffer_t *dma)
 
 
   fprintf(stderr, "worker prune 1\n");
-  sci_map_t local_map;
-  dma->segment_map = SCIMapLocalSegment(dma->local_segment, &local_map, 0, sizeof(writer_job_t), 
+  
+  writer_job_ctx = (writer_job_t *) SCIMapLocalSegment(dma->local_segment, &dma->segment_map, 0, sizeof(writer_job_t), 
     NULL, SCI_NO_FLAGS, &error);
   sci_check_and_fail(error, "SCIMapLocalSegment", "worker");
-
-  writer_job_ctx = (writer_job_t *) dma->segment_map;
 
   // Control
   SCICreateSegment(dma->sd, &dma->control_segment, GET_SEGMENTID(WORKER_WRITER_CTRL), sizeof(config_t), SCI_NO_CALLBACK,
@@ -246,7 +245,7 @@ static void sci_init_dma_ctx(dma_buffer_t *dma)
   sci_check_and_fail(error, "SCISetSegmentAvailable", "worker");
 
   fprintf(stderr, "worker prune 2\n");
-  dma->config = (config_t *) SCIMapLocalSegment(dma->control_segment, &local_map, 0, sizeof(config_t),
+  dma->config = (config_t *) SCIMapLocalSegment(dma->control_segment, &dma->control_map, 0, sizeof(config_t),
       NULL, SCI_NO_FLAGS, &error);
   sci_check_and_fail(error, "SCIMapLocalSegment", "worker");
 
@@ -278,12 +277,9 @@ static void sci_init_worker(worker_t *worker, size_t total_size)
     SCISetSegmentAvailable(worker->frame_segment, ADAPTER_NO, SCI_NO_FLAGS, &error);
     sci_check_and_fail(error, "SCISetSegmentAvailable", "worker");
 
-    sci_map_t local_map;
-    worker->frame_map = SCIMapLocalSegment(worker->frame_segment, &local_map, 0, segment_size, 
+    worker->frame_buffer = (uint8_t *) SCIMapLocalSegment(worker->frame_segment, &worker->frame_map, 0, segment_size, 
       NULL, SCI_NO_FLAGS, &error);
     sci_check_and_fail(error, "SCIMapLocalSegment", "worker");
-
-    worker->frame_buffer = (uint8_t *) worker->frame_map;
 }
 
 static void connect_remote_segment(dma_buffer_t *dma)
