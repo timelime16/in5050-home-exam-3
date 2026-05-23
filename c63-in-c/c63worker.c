@@ -324,7 +324,7 @@ static void get_worker_order()
 {
   sci_error_t error;
   unsigned int node_id;
-  SCIGetLocalNodeId(ADAPTER_NO, *node_id, SCI_NO_FLAGS, &error);
+  SCIGetLocalNodeId(ADAPTER_NO, &node_id, SCI_NO_FLAGS, &error);
   sci_check_and_fail(error, "SCIGetLocalNodeId", "worker");
 
   printf("Node Id: %d\n", node_id);
