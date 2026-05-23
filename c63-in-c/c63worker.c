@@ -31,7 +31,7 @@ static uint32_t writer_node = 0;
 static int width = 0;
 static int height = 0;
 
-static int worker_order = -1;
+static int worker_order = 0;
 
 static sci_remote_segment_t writer_remote_seg;
 static sci_remote_segment_t reader_remote_control_seg;
@@ -340,6 +340,8 @@ static void get_worker_order()
       break;
     }
   }
+
+  printf("Node order: %d\n", worker_order);
 }
 
 static void connect_remote_segment(dma_buffer_t *dma)
