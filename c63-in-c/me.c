@@ -72,13 +72,13 @@ static void me_block_8x8(struct c63_common *cm, int mb_x, int mb_y,
   mb->use_mv = 1;
 }
 
-void c63_motion_estimate(struct c63_common *cm)
+void c63_motion_estimate(struct c63_common *cm, int start_mb_row, int end_mb_row)
 {
   /* Compare this frame with previous reconstructed frame */
   int mb_x, mb_y;
 
   /* Luma */
-  for (mb_y = 0; mb_y < cm->mb_rows; ++mb_y)
+  for (mb_y = start_mb_row; mb_y < end_mb_row; ++mb_y)
   {
     for (mb_x = 0; mb_x < cm->mb_cols; ++mb_x)
     {
@@ -88,7 +88,7 @@ void c63_motion_estimate(struct c63_common *cm)
   }
 
   /* Chroma */
-  for (mb_y = 0; mb_y < cm->mb_rows / 2; ++mb_y)
+  for (mb_y = start_mb_row / 2; mb_y < end_mb_row / 2; ++mb_y)
   {
     for (mb_x = 0; mb_x < cm->mb_cols / 2; ++mb_x)
     {
@@ -128,12 +128,12 @@ static void mc_block_8x8(struct c63_common *cm, int mb_x, int mb_y,
   }
 }
 
-void c63_motion_compensate(struct c63_common *cm)
+void c63_motion_compensate(struct c63_common *cm, int start_mb_row, int end_mb_row)
 {
   int mb_x, mb_y;
 
   /* Luma */
-  for (mb_y = 0; mb_y < cm->mb_rows; ++mb_y)
+  for (mb_y = start_mb_row; mb_y < end_mb_row; ++mb_y)
   {
     for (mb_x = 0; mb_x < cm->mb_cols; ++mb_x)
     {
@@ -143,7 +143,7 @@ void c63_motion_compensate(struct c63_common *cm)
   }
 
   /* Chroma */
-  for (mb_y = 0; mb_y < cm->mb_rows / 2; ++mb_y)
+  for (mb_y = start_mb_row / 2; mb_y < end_mb_row / 2; ++mb_y)
   {
     for (mb_x = 0; mb_x < cm->mb_cols / 2; ++mb_x)
     {

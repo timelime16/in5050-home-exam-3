@@ -42,11 +42,12 @@ void dequantize_idct_row(int16_t *in_data, uint8_t *prediction, int w, int h,
 }
 
 void dequantize_idct(int16_t *in_data, uint8_t *prediction, uint32_t width,
-    uint32_t height, uint8_t *out_data, uint8_t *quantization)
+    uint32_t height, uint8_t *out_data, uint8_t *quantization, 
+    int start_row, int end_row)
 {
   int y;
 
-  for (y = 0; y < height; y += 8)
+  for (y = start_row; y < end_row; y += 8)
   {
     dequantize_idct_row(in_data+y*width, prediction+y*width, width, height, y,
         out_data+y*width, quantization);
@@ -81,11 +82,12 @@ void dct_quantize_row(uint8_t *in_data, uint8_t *prediction, int w, int h,
 }
 
 void dct_quantize(uint8_t *in_data, uint8_t *prediction, uint32_t width,
-    uint32_t height, int16_t *out_data, uint8_t *quantization)
+    uint32_t height, int16_t *out_data, uint8_t *quantization,
+    int start_row, int end_row)
 {
   int y;
 
-  for (y = 0; y < height; y += 8)
+  for (y = start_row; y < end_row; y += 8)
   {
     dct_quantize_row(in_data+y*width, prediction+y*width, width, height,
         out_data+y*width, quantization);

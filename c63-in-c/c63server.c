@@ -33,8 +33,26 @@ extern int optind;
 extern char *optarg;
 
 // SCI variables
-static sci_remote_segment_t remote_seg;
-static sci_map_t remote_map;
+static sci_remote_segment_t remote_seg[MAX_NUM_WORKERS];
+static sci_map_t remote_map[MAX_NUM_WORKERS];
+
+// DMA data transfer
+typedef struct dma_buffer 
+{
+    sci_desc_t sd;
+
+    sci_local_segment_t local_segment;
+    sci_dma_queue_t dma_queue[MAX_NUM_WORKERS];
+
+    sci_map_t segment_map;
+
+    size_t total_size;
+
+    // control
+    sci_local_segment_t control_segment[MAX_NUM_WORKERS];
+    sci_map_t control_map[MAX_NUM_WORKERS];
+    config_t *config[MAX_NUM_WORKERS];
+} dma_buffer_t;
 
 typedef struct
 {
@@ -92,9 +110,9 @@ static void sci_init(dma_buffer_t *dma)
     uint32_t wu = (uint32_t)(ceil(width*UX/(YX*8.0f))*8);
     uint32_t hu = (uint32_t)(ceil(height*UY/(YY*8.0f))*8);
 
-    dma->y_size = wy * hy;
-    dma->uv_size = wu * hu;
-    dma->total_size = dma->y_size + 2 * dma->uv_size;
+    size_t y_size = wy * hy;
+    size_t uv_size = wu * hu;
+    dma->total_size = y_size + 2 * uv_size;
     size_t aligned_size = ((dma->total_size + 4095) / 4096) * 4096;
 
     SCIInitialize(SCI_NO_FLAGS, &error);
@@ -103,8 +121,13 @@ static void sci_init(dma_buffer_t *dma)
     SCIOpen(&dma->sd, SCI_NO_FLAGS, &error);
     sci_check_and_fail(error, "SCIOpen", "server");
 
-    SCICreateDMAQueue(dma->sd, &dma->dma_queue, ADAPTER_NO, 1, SCI_NO_FLAGS, &error);
-    sci_check_and_fail(error, "SCICreateDMAQueue", "server");
+    int i;
+    #pragma unroll
+    for (i = 0; i < MAX_NUM_WORKERS; ++i)
+    {
+      SCICreateDMAQueue(dma->sd, &dma->dma_queue[i], ADAPTER_NO, 1, SCI_NO_FLAGS, &error);
+      sci_check_and_fail(error, "SCICreateDMAQueue", "server");
+    }
 
     // Segment
     SCICreateSegment(dma->sd, &dma->local_segment, GET_SEGMENTID(READER), 2 * aligned_size, SCI_NO_CALLBACK,
@@ -122,17 +145,18 @@ static void sci_init(dma_buffer_t *dma)
     sci_check_and_fail(error, "SCIMapLocalSegment", "server");
 }
 
-static void connect_remote_segment(dma_buffer_t *dma, unsigned int worker_id)
+static void connect_remote_segment(dma_buffer_t *dma, unsigned int worker_id, int i)
 {
     sci_error_t error;
     printf("connecting to: %d\n", worker_id);
+    c63_segment worker_seg = WORKER_DATA + i;
     do 
     {
-      SCIConnectSegment(dma->sd, &remote_seg, worker_id, GET_SEGMENTID(WORKER_DATA), ADAPTER_NO, SCI_NO_CALLBACK,
+      SCIConnectSegment(dma->sd, &remote_seg[i], worker_id, GET_SEGMENTID(worker_seg), ADAPTER_NO, SCI_NO_CALLBACK,
           SCI_NO_ARG, SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
     } while (error != SCI_ERR_OK);
 
-    SCIMapRemoteSegment(remote_seg, &remote_map, 0, 2 * dma->total_size, NULL, SCI_NO_FLAGS, &error);
+    SCIMapRemoteSegment(remote_seg[i], &remote_map[i], 0, 2 * dma->total_size, NULL, SCI_NO_FLAGS, &error);
     sci_check_and_fail(error, "SCIMapRemoteSegment", "server");
 
     printf("connection done! (server to worker)\n");
@@ -150,40 +174,54 @@ static sci_callback_action_t dma_completion_callback(void* arg, sci_dma_queue_t 
   return SCI_CALLBACK_CONTINUE;
 }
 
-static void send_frame_data(dma_buffer_t *dma, int buf, dma_context_t *dma_ctx)
+static void send_frame_data(dma_buffer_t *dma, int buf, dma_context_t *dma_ctx, int i)
 {
     sci_error_t error;
 
     size_t offset = buf * dma->total_size;
 
-    dma->config->dma_queue_state[buf] = TRANSFERRING;
-    SCIStartDmaTransfer(dma->dma_queue, dma->local_segment, remote_seg, offset, dma->total_size, offset,
+    dma->config[i]->dma_queue_state[buf] = TRANSFERRING;
+    SCIStartDmaTransfer(dma->dma_queue[i], dma->local_segment, remote_seg[i], offset, dma->total_size, offset,
         dma_completion_callback, dma_ctx, SCI_FLAG_USE_CALLBACK, &error);
     sci_check_and_fail(error, "SCIStartDMATransfer", "server");
 }
 
 static void sci_cleanup(dma_buffer_t *dma)
 {
+    int i;
     sci_error_t error;
 
     // Segments
-    SCIDisconnectSegment(remote_seg, SCI_NO_FLAGS, &error);
+    #pragma unroll
+    for (i = 0; i < MAX_NUM_WORKERS; ++i)
+    {
+      SCIUnmapSegment(remote_map[i], SCI_NO_FLAGS, &error);
+      SCIDisconnectSegment(remote_seg[i], SCI_NO_FLAGS, &error);
+    }
     SCIUnmapSegment(dma->segment_map, SCI_NO_FLAGS, &error);
     SCIRemoveSegment(dma->local_segment, SCI_NO_FLAGS, &error);
 
-    // Config
-    SCIRemoveSegment(dma->control_segment, SCI_NO_FLAGS, &error);
-
     // Rest
-    SCIRemoveDMAQueue(dma->dma_queue, SCI_NO_FLAGS, &error);
-    SCIClose(dma->sd, SCI_NO_FLAGS, &error);
+    #pragma unroll
+    for (i = 0; i < MAX_NUM_WORKERS; ++i)
+    {
+      // Config
+      SCIUnmapSegment(dma->control_map[i], SCI_NO_FLAGS, &error);
+      SCIRemoveSegment(dma->control_segment[i], SCI_NO_FLAGS, &error);
+      SCIRemoveDMAQueue(dma->dma_queue[i], SCI_NO_FLAGS, &error);
+    }
 
+    SCIClose(dma->sd, SCI_NO_FLAGS, &error);
     SCITerminate();
 }
 
-static void wait_for_worker(config_t *config, int buf)
-{
-    while (config->dma_queue_state[buf] == BUSY);// {fprintf(stderr, "server prune wait for worker\n");}
+static void wait_for_workers(dma_buffer_t *dma, int buf)
+{ 
+    int i;
+    for (i = 0; i < MAX_NUM_WORKERS; ++i)
+    {
+      while (dma->config[i]->dma_queue_state[buf] == BUSY);
+    }
 }
 
 static void sci_init_control(dma_buffer_t *dma)
@@ -192,27 +230,34 @@ static void sci_init_control(dma_buffer_t *dma)
 
     size_t size = sizeof(config_t);
 
-    SCICreateSegment(dma->sd, &dma->control_segment, GET_SEGMENTID(READER_WORKER_CTRL), size, SCI_NO_CALLBACK,
+    int i;
+    #pragma unroll
+    for (i = 0; i < MAX_NUM_WORKERS; ++i)
+    {
+      c63_segment ctrl_seg = READER_WORKER_CTRL + i;
+      SCICreateSegment(dma->sd, &dma->control_segment[i], GET_SEGMENTID(ctrl_seg), size, SCI_NO_CALLBACK,
         NULL, SCI_NO_FLAGS, &error);
-    sci_check_and_fail(error, "SCICreateSegment", "server");
+      sci_check_and_fail(error, "SCICreateSegment", "server");
 
-    SCIPrepareSegment(dma->control_segment, ADAPTER_NO, SCI_NO_FLAGS, &error);
-    sci_check_and_fail(error, "SCIPrepareSegment", "server");
+      SCIPrepareSegment(dma->control_segment[i], ADAPTER_NO, SCI_NO_FLAGS, &error);
+      sci_check_and_fail(error, "SCIPrepareSegment", "server");
 
-    SCISetSegmentAvailable(dma->control_segment, ADAPTER_NO, SCI_NO_FLAGS, &error);
-    sci_check_and_fail(error, "SCISetSegmentAvailable", "server");
+      SCISetSegmentAvailable(dma->control_segment[i], ADAPTER_NO, SCI_NO_FLAGS, &error);
+      sci_check_and_fail(error, "SCISetSegmentAvailable", "server");
 
-    dma->config = (config_t *) SCIMapLocalSegment(dma->control_segment, &dma->control_map, 0, size,
-        NULL, SCI_NO_FLAGS, &error);
-    sci_check_and_fail(error, "SCIMapLocalSegment", "server");
+      dma->config[i] = (config_t *) SCIMapLocalSegment(dma->control_segment[i], &dma->control_map[i], 0, size,
+          NULL, SCI_NO_FLAGS, &error);
+      sci_check_and_fail(error, "SCIMapLocalSegment", "server");
 
-    dma->config->initialized = 0;
-    dma->config->width = 0;
-    dma->config->height = 0;
-    dma->config->writer = 0;
-    
-    dma->config->complete = ONGOING;
-    dma->config->ack      = ONGOING;
+      
+      dma->config[i]->dma_queue_state[0] = dma->config[i]->dma_queue_state[1] = BUSY;
+      dma->config[i]->width = width;
+      dma->config[i]->height = height;
+      dma->config[i]->writer = writer_node;
+      dma->config[i]->complete = ONGOING;
+      dma->config[i]->ack = ONGOING;
+      dma->config[i]->initialized = 1;
+    }
 }
 
 
@@ -224,7 +269,7 @@ int main(int argc, char **argv)
 
   // SCI variables
   dma_buffer_t dma;
-  dma_context_t dma_ctx[NUM_SEG];
+  dma_context_t dma_ctx[MAX_NUM_WORKERS][NUM_SEG];
 
   if (argc == 1) { print_help(); }
 
@@ -259,26 +304,21 @@ int main(int argc, char **argv)
     exit(EXIT_FAILURE);
   }
 
-//   struct c63_common *cm = init_c63_enc(width, height);
-
   // SCI init
-  fprintf(stderr, "server prune 1\n");
   sci_init(&dma);
-  fprintf(stderr, "server prune 2\n");
+
   // control
   sci_init_control(&dma);
-  dma.config->dma_queue_state[0] = dma.config->dma_queue_state[1] = BUSY;
-  dma.config->width = width;
-  dma.config->height = height;
-  dma.config->writer = writer_node;
-  dma.config->initialized = 1;
+  int i;
+  #pragma unroll
+  for (i = 0; i < MAX_NUM_WORKERS; ++i)
+  {
+    dma_ctx[i][0].config = dma_ctx[i][1].config = dma.config[i];
+    dma_ctx[i][0].buf = 0; dma_ctx[i][1].buf = 1;
 
-  fprintf(stderr, "server prune 3\n");
-  dma_ctx[0].config = dma_ctx[1].config = dma.config;
-  dma_ctx[0].buf = 0; dma_ctx[1].buf = 1;
-  fprintf(stderr, "server prune 4\n");
+    connect_remote_segment(&dma, worker_nodes[i], i);
+  }
 
-  connect_remote_segment(&dma, worker_nodes[0]);
 
   input_file = argv[optind];
 
@@ -292,7 +332,6 @@ int main(int argc, char **argv)
     exit(EXIT_FAILURE);
   }
 
-  printf("reached here server\n");
   /* Encode input frames */
   int numframes = 0;
 
@@ -300,6 +339,7 @@ int main(int argc, char **argv)
   printf("server: input file %s\n", input_file);
   printf("server: %ux%u\n", width, height);
   
+
   for (int i = 0; i < MAX_NUM_WORKERS; i++) {
     printf("server: Worker%d has nodeid: %u\n", i, worker_nodes[i]);
   }
@@ -315,13 +355,17 @@ int main(int argc, char **argv)
     int curr_buf = buf;
     buf ^= 1; 
 
-    wait_for_worker(dma.config, curr_buf);
+    wait_for_workers(&dma, curr_buf);
 
     image = read_yuv(infile, &dma, width, height, curr_buf);
     if (!image) { break; }
 
     printf("Encoding frame %d, ", numframes);
-    send_frame_data(&dma, curr_buf, &dma_ctx[curr_buf]);
+    #pragma unroll
+    for (i = 0; i < MAX_NUM_WORKERS; ++i)
+    {
+      send_frame_data(&dma, curr_buf, &dma_ctx[i][curr_buf], i);
+    }
     printf("Done!\n");
 
     ++numframes;
@@ -330,23 +374,20 @@ int main(int argc, char **argv)
   }
 
   // send signal to close workers
-  dma.config->complete = DONE;
-  dma.config->dma_queue_state[0] = dma.config->dma_queue_state[1] = TRANSFER_COMPLETED;
-  while (dma.config->complete != ACKNOWLEDGED); //{fprintf(stderr, "server prune waiting ack\n");}
+  #pragma unroll
+  for (i = 0; i < MAX_NUM_WORKERS; ++i)
+  {
+    dma.config[i]->complete = DONE;
+    dma.config[i]->dma_queue_state[0] = dma.config[i]->dma_queue_state[1] = TRANSFER_COMPLETED;
+  }
+
+  for (i = 0; i < MAX_NUM_WORKERS; ++i) 
+  {
+    while (dma.config[i]->ack != ACKNOWLEDGED);
+  }
 
   fclose(infile);
   sci_cleanup(&dma);
-
-  //int i, j;
-  //for (i = 0; i < 2; ++i)
-  //{
-  //  printf("int freq[] = {");
-  //  for (j = 0; j < ARRAY_SIZE(frequencies[i]); ++j)
-  //  {
-  //    printf("%d, ", frequencies[i][j]);
-  //  }
-  //  printf("};\n");
-  //}
 
   return EXIT_SUCCESS;
 }

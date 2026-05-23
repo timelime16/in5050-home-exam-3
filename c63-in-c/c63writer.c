@@ -26,9 +26,6 @@ static uint32_t worker_nodes[MAX_NUM_WORKERS] = {};
 static int width = 0;
 static int height = 0;
 
-static sci_map_t worker_remote_control_map;
-
-
 /* getopt */
 extern int optind;
 extern char *optarg;
@@ -45,8 +42,8 @@ typedef struct
 
 } writer_t;
 
-static sci_remote_segment_t worker_remote_control_seg;
-
+static sci_remote_segment_t worker_remote_control_seg[MAX_NUM_WORKERS];
+static sci_map_t worker_remote_control_map[MAX_NUM_WORKERS];
 
 
 static void print_help()
@@ -119,36 +116,30 @@ static void sci_init(writer_t *writer)
   sci_check_and_fail(error, "SCIOpen", "writer");
 }
 
-static config_t *sci_init_control(writer_t *writer) 
+static config_t *sci_init_control(writer_t *writer, int i) 
 {
   sci_error_t error;
+  c63_segment ctrl_seg = WORKER_WRITER_CTRL + i;
 
-
-  fprintf(stderr, "reached here 8 writer\n");
-  int i = 0;
   do 
   {
-    SCIConnectSegment(writer->sd, &worker_remote_control_seg, worker_nodes[0], GET_SEGMENTID(WORKER_WRITER_CTRL), ADAPTER_NO,
+    SCIConnectSegment(writer->sd, &worker_remote_control_seg[i], worker_nodes[i], GET_SEGMENTID(ctrl_seg), ADAPTER_NO,
         SCI_NO_CALLBACK, SCI_NO_ARG, SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
-    fprintf(stderr, "reached here 9 writer\n");
-    if (i == 20) {sci_check_and_fail(SCI_ERR_NO_LINK_ACCESS, "SCICOnnectSegment", "writer");}
-    ++i;
   } while (error != SCI_ERR_OK);
 
   fprintf(stderr, "connection done! ctrl (writer to worker)\n");
 
-
-  fprintf(stderr, "reached here 6 writer\n");
-
-  config_t *config = (config_t *) SCIMapRemoteSegment(worker_remote_control_seg, &worker_remote_control_map, 0, sizeof(config_t),
+  config_t *config = (config_t *) SCIMapRemoteSegment(worker_remote_control_seg[i], &worker_remote_control_map[i], 0, sizeof(config_t),
       NULL, SCI_NO_FLAGS, &error);
   sci_check_and_fail(error, "SCIMapRemoteSegment", "writer");
 
-  fprintf(stderr, "reached here 7 writer\n");
-
-  while (!config->initialized);
-  width = config->width;
-  height = config->height;
+  // only done once
+  if (i == 0)
+  {
+    while (!config->initialized);
+    width = config->width;
+    height = config->height;
+  }
 
   return config;
 }
@@ -157,7 +148,7 @@ static void sci_init_writer(writer_t *writer)
 {
     sci_error_t error;
 
-    SCICreateSegment(writer->sd, &writer->writer_job_segment, GET_SEGMENTID(WRITER), sizeof(writer_job_t), SCI_NO_CALLBACK,
+    SCICreateSegment(writer->sd, &writer->writer_job_segment, GET_SEGMENTID(WRITER), 2 * sizeof(writer_job_t), SCI_NO_CALLBACK,
       NULL, SCI_NO_FLAGS, &error);
     sci_check_and_fail(error, "SCICreateSegment", "writer");
 
@@ -167,18 +158,36 @@ static void sci_init_writer(writer_t *writer)
     SCISetSegmentAvailable(writer->writer_job_segment, ADAPTER_NO, SCI_NO_FLAGS, &error);
     sci_check_and_fail(error, "SCISetSegmentAvailable", "writer");
 
-    writer->buffer = (writer_job_t *) SCIMapLocalSegment(writer->writer_job_segment, &writer->writer_map, 0, sizeof(writer_job_t), 
+    writer->buffer = (writer_job_t *) SCIMapLocalSegment(writer->writer_job_segment, &writer->writer_map, 0, 2 * sizeof(writer_job_t), 
       NULL, SCI_NO_FLAGS, &error);
     sci_check_and_fail(error, "SCIMapLocalSegment", "writer");
 }
 
+static void wait_for_workers(config_t *config[MAX_NUM_WORKERS]) 
+{
+  int i;
+  #pragma unroll
+  for (i = 0; i < MAX_NUM_WORKERS; ++i)
+  {
+    while (config[i]->dma_queue_state[0] != TRANSFER_COMPLETED);
+    config[i]->dma_queue_state[0] = BUSY;
+  }
+}
+
 static void sci_cleanup(writer_t *writer)
 {
+  int i;
   sci_error_t error;
 
   SCIUnmapSegment(writer->writer_map, SCI_NO_FLAGS, &error);
   SCIRemoveSegment(writer->writer_job_segment, SCI_NO_FLAGS, &error);
-  SCIDisconnectSegment(worker_remote_control_seg, SCI_NO_FLAGS, &error);
+
+  #pragma unroll
+  for (i = 0; i < MAX_NUM_WORKERS; ++i)
+  {
+    SCIUnmapSegment(worker_remote_control_map[i], SCI_NO_FLAGS, & error);
+    SCIDisconnectSegment(worker_remote_control_seg[i], SCI_NO_FLAGS, &error);
+  }
 
   SCIClose(writer->sd, SCI_NO_FLAGS, &error);
   SCITerminate();
@@ -192,7 +201,7 @@ int main(int argc, char **argv)
   int w = 0; /* worker index */
 
   writer_t writer_ctx;
-  config_t *config;
+  config_t *config[MAX_NUM_WORKERS];
 
   if (argc == 1) { print_help(); }
 
@@ -226,17 +235,16 @@ int main(int argc, char **argv)
 
 
   /* Initialize the SISCI library */
-
-  fprintf(stderr, "reached here 1 writer\n");
   sci_init(&writer_ctx);
 
-  fprintf(stderr, "reached here 2 writer\n");
   sci_init_writer(&writer_ctx);
 
-  fprintf(stderr, "reached here 3 writer\n");
-  config = sci_init_control(&writer_ctx);
-
-  fprintf(stderr, "reached here 4 writer\n");
+  int i;
+  #pragma unroll
+  for (i = 0; i < MAX_NUM_WORKERS; ++i)
+  {
+    config[i] = sci_init_control(&writer_ctx, i);
+  }
 
   struct c63_common *cm = init_c63_enc(width, height);
   cm->e_ctx.fp = outfile;
@@ -247,27 +255,51 @@ int main(int argc, char **argv)
   /* FIXME: You should remove this when you have real data to write */
   // fwrite("HELLO\n", 6, 1, outfile);
 
+  size_t dct_size_y = cm->ypw * cm->yph * sizeof(int16_t) / 2;
+  size_t dct_size_u = cm->upw * cm->uph * sizeof(int16_t) / 2;
+  size_t dct_size_v = cm->vpw * cm->vph * sizeof(int16_t) / 2;
+  size_t mb_size_y = cm->mb_cols * cm->mb_rows * sizeof(struct macroblock) / 2;
+  size_t mb_size_uv = (cm->mb_cols/2) * (cm->mb_rows/2) * sizeof(struct macroblock) / 2;
+
   while (1) 
   {
-    while (config->dma_queue_state[0] != TRANSFER_COMPLETED);
-    config->dma_queue_state[0] = BUSY;
+    wait_for_workers(config);
 
-    if (config->complete == DONE) { break; }
+    #pragma unroll
+    for (i = 0; i < MAX_NUM_WORKERS; ++i)
+    {
+      if (config[i]->complete == DONE) { break; }
+    }
 
-    cm->curframe->keyframe = writer_ctx.buffer->keyframe;
-    memcpy(cm->curframe->residuals->Ydct, writer_ctx.buffer->Ydct, cm->yph * cm->ypw * sizeof(int16_t));
-    memcpy(cm->curframe->residuals->Udct, writer_ctx.buffer->Udct, cm->uph * cm->upw * sizeof(int16_t));
-    memcpy(cm->curframe->residuals->Vdct, writer_ctx.buffer->Vdct, cm->vph * cm->vpw * sizeof(int16_t));
-    memcpy(cm->curframe->mbs[0], writer_ctx.buffer->mbs_Y, cm->mb_cols * cm->mb_rows * sizeof(struct macroblock));
-    memcpy(cm->curframe->mbs[1], writer_ctx.buffer->mbs_U, (cm->mb_cols/2) * (cm->mb_rows/2) * sizeof(struct macroblock));
-    memcpy(cm->curframe->mbs[2], writer_ctx.buffer->mbs_V, (cm->mb_cols/2) * (cm->mb_rows/2) * sizeof(struct macroblock));
+    cm->curframe->keyframe = writer_ctx.buffer[0].keyframe;
+    for (i = 0; i < MAX_NUM_WORKERS; ++i)
+    {
+        memcpy(cm->curframe->residuals->Ydct + i * dct_size_y,   writer_ctx.buffer[i].Ydct,  dct_size_y);
+        memcpy(cm->curframe->residuals->Udct + i * dct_size_u,   writer_ctx.buffer[i].Udct,  dct_size_u);
+        memcpy(cm->curframe->residuals->Vdct + i * dct_size_v,   writer_ctx.buffer[i].Vdct,  dct_size_v);
+        memcpy(cm->curframe->mbs[0]          + i * mb_size_y/sizeof(struct macroblock),  writer_ctx.buffer[i].mbs_Y, mb_size_y);
+        memcpy(cm->curframe->mbs[1]          + i * mb_size_uv/sizeof(struct macroblock), writer_ctx.buffer[i].mbs_U, mb_size_uv);
+        memcpy(cm->curframe->mbs[2]          + i * mb_size_uv/sizeof(struct macroblock), writer_ctx.buffer[i].mbs_V, mb_size_uv);
+    }
+    // memcpy(cm->curframe->residuals->Ydct, writer_ctx.buffer->Ydct, );
+    // memcpy(cm->curframe->residuals->Udct, writer_ctx.buffer->Udct, cm->uph * cm->upw * sizeof(int16_t));
+    // memcpy(cm->curframe->residuals->Vdct, writer_ctx.buffer->Vdct, cm->vph * cm->vpw * sizeof(int16_t));
+    // memcpy(cm->curframe->mbs[0], writer_ctx.buffer->mbs_Y, cm->mb_cols * cm->mb_rows * sizeof(struct macroblock));
+    // memcpy(cm->curframe->mbs[1], writer_ctx.buffer->mbs_U, (cm->mb_cols/2) * (cm->mb_rows/2) * sizeof(struct macroblock));
+    // memcpy(cm->curframe->mbs[2], writer_ctx.buffer->mbs_V, (cm->mb_cols/2) * (cm->mb_rows/2) * sizeof(struct macroblock));
 
     write_frame(cm);
 
-    config->dma_queue_state[0] = AVAILABLE;
+    for (i = 0; i < MAX_NUM_WORKERS; ++i)
+    {
+      config[i]->dma_queue_state[0] = AVAILABLE;
+    }
   }
 
-  config->complete = ACKNOWLEDGED;
+  for (i = 0; i < MAX_NUM_WORKERS; ++i)
+  {
+    config[i]->ack = ACKNOWLEDGED;
+  }
 
   fclose(outfile);
   free_c63_enc(cm);

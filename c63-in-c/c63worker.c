@@ -31,6 +31,8 @@ static uint32_t writer_node = 0;
 static int width = 0;
 static int height = 0;
 
+static int worker_order = -1;
+
 static sci_remote_segment_t writer_remote_seg;
 static sci_remote_segment_t reader_remote_control_seg;
 
@@ -52,10 +54,32 @@ typedef struct
 
 } worker_t;
 
+// DMA data transfer
+typedef struct dma_buffer 
+{
+    sci_desc_t sd;
+
+    sci_local_segment_t local_segment;
+    sci_dma_queue_t dma_queue;
+
+    sci_map_t segment_map;
+
+    size_t total_size;
+
+    // control
+    sci_local_segment_t control_segment;
+    sci_map_t control_map;
+    config_t *config;
+} dma_buffer_t;
+
 
 
 static void c63_encode_image(struct c63_common *cm, yuv_t *image)
 {
+  int start_mb_row, end_mb_row;
+  int start_y, end_y;
+  int start_u, end_u;
+  int start_v, end_v;
   /* Advance to next frame */
   destroy_frame(cm->refframe);
   cm->refframe = cm->curframe;
@@ -73,33 +97,51 @@ static void c63_encode_image(struct c63_common *cm, yuv_t *image)
 
   if (!cm->curframe->keyframe)
   {
+    start_mb_row = worker_order * cm->mb_rows / 2;
+    end_mb_row = start_mb_row + cm->mb_rows / 2;
+
     /* Motion Estimation */
-    c63_motion_estimate(cm);
+    c63_motion_estimate(cm, start_mb_row, end_mb_row);
 
     /* Motion Compensation */
-    c63_motion_compensate(cm);
+    c63_motion_compensate(cm, start_mb_row, end_mb_row);
   }
 
   /* DCT and Quantization */
+  start_y = worker_order * cm->padh[Y_COMPONENT] / 2;
+  end_y = start_y + cm->padh[Y_COMPONENT] / 2;
   dct_quantize(image->Y, cm->curframe->predicted->Y, cm->padw[Y_COMPONENT],
       cm->padh[Y_COMPONENT], cm->curframe->residuals->Ydct,
-      cm->quanttbl[Y_COMPONENT]);
+      cm->quanttbl[Y_COMPONENT], start_y, end_y);
 
+  start_u = worker_order * cm->padh[U_COMPONENT] / 2;
+  end_u = start_u + cm->padh[U_COMPONENT] / 2;
   dct_quantize(image->U, cm->curframe->predicted->U, cm->padw[U_COMPONENT],
       cm->padh[U_COMPONENT], cm->curframe->residuals->Udct,
-      cm->quanttbl[U_COMPONENT]);
+      cm->quanttbl[U_COMPONENT], start_u, end_u);
 
+  start_v = worker_order * cm->padh[V_COMPONENT] / 2;
+  end_v = start_v + cm->padh[V_COMPONENT] / 2;
   dct_quantize(image->V, cm->curframe->predicted->V, cm->padw[V_COMPONENT],
       cm->padh[V_COMPONENT], cm->curframe->residuals->Vdct,
-      cm->quanttbl[V_COMPONENT]);
+      cm->quanttbl[V_COMPONENT], start_v, end_v);
 
   /* Reconstruct frame for inter-prediction */
+  start_y = worker_order * cm->yph / 2;
+  end_y = start_y + cm->yph / 2;
   dequantize_idct(cm->curframe->residuals->Ydct, cm->curframe->predicted->Y,
-      cm->ypw, cm->yph, cm->curframe->recons->Y, cm->quanttbl[Y_COMPONENT]);
+      cm->ypw, cm->yph, cm->curframe->recons->Y, cm->quanttbl[Y_COMPONENT], 
+      start_y, end_y);
+  start_u = worker_order * cm->uph / 2;
+  end_u = start_u + cm->uph / 2;
   dequantize_idct(cm->curframe->residuals->Udct, cm->curframe->predicted->U,
-      cm->upw, cm->uph, cm->curframe->recons->U, cm->quanttbl[U_COMPONENT]);
+      cm->upw, cm->uph, cm->curframe->recons->U, cm->quanttbl[U_COMPONENT],
+      start_u, end_u);
+  start_v = worker_order * cm->vph / 2;
+  end_v = start_v + cm->vph / 2;
   dequantize_idct(cm->curframe->residuals->Vdct, cm->curframe->predicted->V,
-      cm->vpw, cm->vph, cm->curframe->recons->V, cm->quanttbl[V_COMPONENT]);
+      cm->vpw, cm->vph, cm->curframe->recons->V, cm->quanttbl[V_COMPONENT],
+      start_v, end_v);
 
   /* Function dump_image(), found in common.c, can be used here to check if the
      prediction is correct */
@@ -182,14 +224,11 @@ static void sci_init(worker_t *worker)
 static config_t *sci_init_control(worker_t *worker) 
 {
   sci_error_t error;
-  int i = 0;
+  c63_segment ctrl_seg = READER_WORKER_CTRL + worker_order;
   do 
   {
-    SCIConnectSegment(worker->sd, &reader_remote_control_seg, server_node, GET_SEGMENTID(READER_WORKER_CTRL), ADAPTER_NO,
+    SCIConnectSegment(worker->sd, &reader_remote_control_seg, server_node, GET_SEGMENTID(ctrl_seg), ADAPTER_NO,
         SCI_NO_CALLBACK, SCI_NO_ARG, SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
-    fprintf(stderr, "worker prune connection to reader ctrl\n");
-    if (i == 20) {sci_check_and_fail(SCI_ERR_NO_LINK_ACCESS, "SCICOnnectSegment", "writer");}
-    ++i;
   } while (error != SCI_ERR_OK);
 
   fprintf(stderr, "connection done! ctrl (worker to server)\n");
@@ -227,15 +266,14 @@ static void sci_init_dma_ctx(dma_buffer_t *dma)
   SCISetSegmentAvailable(dma->local_segment, ADAPTER_NO, SCI_NO_FLAGS, &error);
   sci_check_and_fail(error, "SCISetSegmentAvailable", "worker");
 
-
-  fprintf(stderr, "worker prune 1\n");
   
   writer_job_ctx = (writer_job_t *) SCIMapLocalSegment(dma->local_segment, &dma->segment_map, 0, sizeof(writer_job_t), 
     NULL, SCI_NO_FLAGS, &error);
   sci_check_and_fail(error, "SCIMapLocalSegment", "worker");
 
   // Control
-  SCICreateSegment(dma->sd, &dma->control_segment, GET_SEGMENTID(WORKER_WRITER_CTRL), sizeof(config_t), SCI_NO_CALLBACK,
+  c63_segment ctrl_seg = WORKER_WRITER_CTRL + worker_order;
+  SCICreateSegment(dma->sd, &dma->control_segment, GET_SEGMENTID(ctrl_seg), sizeof(config_t), SCI_NO_CALLBACK,
       NULL, SCI_NO_FLAGS, &error);
   sci_check_and_fail(error, "SCICreateSegment", "worker writer ctrl");
 
@@ -245,20 +283,17 @@ static void sci_init_dma_ctx(dma_buffer_t *dma)
   SCISetSegmentAvailable(dma->control_segment, ADAPTER_NO, SCI_NO_FLAGS, &error);
   sci_check_and_fail(error, "SCISetSegmentAvailable", "worker");
 
-  fprintf(stderr, "worker prune 2\n");
   dma->config = (config_t *) SCIMapLocalSegment(dma->control_segment, &dma->control_map, 0, sizeof(config_t),
       NULL, SCI_NO_FLAGS, &error);
   sci_check_and_fail(error, "SCIMapLocalSegment", "worker");
 
-  fprintf(stderr, "worker prune 3\n");
-
-  dma->config->initialized = 0;
-  dma->config->width = 0;
-  dma->config->height = 0;
-  dma->config->writer = 0;
-  
+  dma->config->dma_queue_state[0] = dma->config->dma_queue_state[1] = AVAILABLE;
+  dma->config->width = width;
+  dma->config->height = height;
+  dma->config->writer = writer_node;
   dma->config->complete = ONGOING;
   dma->config->ack      = ONGOING;
+  dma->config->initialized = 1;
 }
 
 
@@ -268,7 +303,9 @@ static void sci_init_worker(worker_t *worker, size_t total_size)
 
     size_t segment_size = 2 * total_size;
 
-    SCICreateSegment(worker->sd, &worker->frame_segment, GET_SEGMENTID(WORKER_DATA), segment_size, SCI_NO_CALLBACK,
+    c63_segment data_seg = WORKER_DATA + worker_order;
+
+    SCICreateSegment(worker->sd, &worker->frame_segment, GET_SEGMENTID(data_seg), segment_size, SCI_NO_CALLBACK,
       NULL, SCI_NO_FLAGS, &error);
     sci_check_and_fail(error, "SCICreateSegment", "worker reader");
 
@@ -283,6 +320,26 @@ static void sci_init_worker(worker_t *worker, size_t total_size)
     sci_check_and_fail(error, "SCIMapLocalSegment", "worker");
 }
 
+static void get_worker_order() 
+{
+  sci_error_t error;
+  unsigned int node_id;
+  SCIGetLocalNodeId(ADAPTER_NO, *node_id, SCI_NO_FLAGS, &error);
+  sci_check_and_fail(error, "SCIGetLocalNodeId", "worker");
+
+  printf("Node Id: %d\n", node_id);
+
+  int i;
+  for (i = 0; i < MAX_NUM_WORKERS; ++i) 
+  {
+    if (worker_nodes[i] == node_id) 
+    {
+      worker_order = i;
+      break;
+    }
+  }
+}
+
 static void connect_remote_segment(dma_buffer_t *dma)
 {
     sci_error_t error;
@@ -293,7 +350,7 @@ static void connect_remote_segment(dma_buffer_t *dma)
           SCI_NO_ARG, SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
     } while (error != SCI_ERR_OK);
 
-    SCIMapRemoteSegment(writer_remote_seg, &writer_remote_map, 0, sizeof(writer_job_t), NULL, SCI_NO_FLAGS, &error);
+    SCIMapRemoteSegment(writer_remote_seg, &writer_remote_map, 0, 2 * sizeof(writer_job_t), NULL, SCI_NO_FLAGS, &error);
     sci_check_and_fail(error, "SCIMapRemoteSegment", "server");
 
     fprintf(stderr, "connection done! (worker to writer)\n");
@@ -311,14 +368,15 @@ static void send_encoded_data(dma_buffer_t *dma)
     sci_error_t error;
 
     dma->config->dma_queue_state[0] = TRANSFERRING;
-    SCIStartDmaTransfer(dma->dma_queue, dma->local_segment, writer_remote_seg, 0, sizeof(writer_job_t), 0,
+    size_t remote_offset = worker_order * sizeof(writer_job_t);
+    SCIStartDmaTransfer(dma->dma_queue, dma->local_segment, writer_remote_seg, 0, sizeof(writer_job_t), remote_offset,
         dma_completion_callback, dma, SCI_FLAG_USE_CALLBACK, &error);
     sci_check_and_fail(error, "SCIStartDMATransfer", "worker");
 }
 
 static inline void wait_for_writer(config_t *config)
 {
-    while (config->dma_queue_state[0] == BUSY); //{fprintf(stderr, "worker prune waiting for writer\n");}
+    while (config->dma_queue_state[0] == BUSY);
 }
 
 static void sci_cleanup(worker_t *worker, dma_buffer_t *dma)
@@ -327,11 +385,15 @@ static void sci_cleanup(worker_t *worker, dma_buffer_t *dma)
 
   SCIUnmapSegment(worker->frame_map, SCI_NO_FLAGS, &error);
   SCIRemoveSegment(worker->frame_segment, SCI_NO_FLAGS, &error);
+
+  SCIUnmapSegment(reader_remote_control_map, SCI_NO_FLAGS, &error);
   SCIDisconnectSegment(reader_remote_control_seg, SCI_NO_FLAGS, &error);
 
   SCIUnmapSegment(dma->segment_map, SCI_NO_FLAGS, &error);
   SCIRemoveSegment(dma->local_segment, SCI_NO_FLAGS, &error);
+  SCIUnmapSegment(dma->control_map, SCI_NO_FLAGS, &error);
   SCIRemoveSegment(dma->control_segment, SCI_NO_FLAGS, &error);
+  SCIUnmapSegment(writer_remote_map, SCI_NO_FLAGS, &error);
   SCIDisconnectSegment(writer_remote_seg, SCI_NO_FLAGS, &error);
   SCIRemoveDMAQueue(dma->dma_queue, SCI_NO_FLAGS, &error);
 
@@ -373,33 +435,17 @@ int main(int argc, char **argv)
   // SCI 
   sci_init(&worker_ctx);
 
-  sci_error_t error;
-  unsigned int node;
-  SCIGetLocalNodeId(ADAPTER_NO, &node, SCI_NO_FLAGS, &error);
-  printf("Running on SCI node %u\n", node);
+  get_worker_order();
 
-  fprintf(stderr, "worker prune 4\n");
   reader_config = sci_init_control(&worker_ctx);
 
-  fprintf(stderr, "worker prune 5\n");
   size_t y_size = width * height;
   size_t uv_size = y_size / 4;
   size_t total_size = y_size + 2 * uv_size;
   size_t aligned_size = ((total_size + 4095) / 4096) * 4096;
   sci_init_worker(&worker_ctx, aligned_size);
 
-  
-  fprintf(stderr, "worker prune 6\n");
-
   sci_init_dma_ctx(&dma);
-  
-  dma.config->dma_queue_state[0] = dma.config->dma_queue_state[1] = AVAILABLE;
-  dma.config->width = width;
-  dma.config->height = height;
-  dma.config->writer = writer_node;
-  dma.config->initialized = 1;
-
-  fprintf(stderr, "worker prune init alr\n");
 
   connect_remote_segment(&dma);
 
@@ -411,6 +457,11 @@ int main(int argc, char **argv)
 
   int buf = 0;
 
+  size_t dct_size_y = cm->ypw * cm->yph * sizeof(int16_t) / 2;
+  size_t dct_size_u = cm->upw * cm->uph * sizeof(int16_t) / 2;
+  size_t dct_size_v = cm->vpw * cm->vph * sizeof(int16_t) / 2;
+  size_t mb_size_y = cm->mb_cols * cm->mb_rows * sizeof(struct macroblock) / 2;
+  size_t mb_size_uv = (cm->mb_cols/2) * (cm->mb_rows/2) * sizeof(struct macroblock) / 2;
 
   reader_config->dma_queue_state[0] = reader_config->dma_queue_state[1] = AVAILABLE;
 
@@ -423,23 +474,25 @@ int main(int argc, char **argv)
 
     uint8_t *frame = worker_ctx.frame_buffer + buf * total_size;
 
-    memcpy(image.Y, frame, y_size);
-    memcpy(image.U, frame + y_size, uv_size);
-    memcpy(image.V, frame + y_size + uv_size, uv_size);
+    image.Y = frame;
+    image.U = frame + y_size;
+    image.V = frame + uv_size;
+    // memcpy(image.Y, frame, y_size);
+    // memcpy(image.U, frame + y_size, uv_size);
+    // memcpy(image.V, frame + y_size + uv_size, uv_size);
 
     c63_encode_image(cm, &image);
 
     // Send to writer
     wait_for_writer(dma.config);
 
-
     writer_job_ctx->keyframe = cm->curframe->keyframe;
-    memcpy(writer_job_ctx->Ydct, cm->curframe->residuals->Ydct, cm->ypw * cm->yph * sizeof(int16_t));
-    memcpy(writer_job_ctx->Udct, cm->curframe->residuals->Udct, cm->upw * cm->uph * sizeof(int16_t));
-    memcpy(writer_job_ctx->Vdct, cm->curframe->residuals->Vdct, cm->vpw * cm->vph * sizeof(int16_t));
-    memcpy(writer_job_ctx->mbs_Y, cm->curframe->mbs[0], cm->mb_cols * cm->mb_rows * sizeof(struct macroblock));
-    memcpy(writer_job_ctx->mbs_U, cm->curframe->mbs[1], (cm->mb_cols/2) * (cm->mb_rows/2) * sizeof(struct macroblock));
-    memcpy(writer_job_ctx->mbs_V, cm->curframe->mbs[2], (cm->mb_cols/2) * (cm->mb_rows/2) * sizeof(struct macroblock));
+    memcpy(writer_job_ctx->Ydct, cm->curframe->residuals->Ydct + worker_order * dct_size_y, dct_size_y);
+    memcpy(writer_job_ctx->Udct, cm->curframe->residuals->Udct + worker_order * dct_size_u, dct_size_u);
+    memcpy(writer_job_ctx->Vdct, cm->curframe->residuals->Vdct + worker_order * dct_size_v, dct_size_v);
+    memcpy(writer_job_ctx->mbs_Y, cm->curframe->mbs[0] + worker_order * mb_size_y, mb_size_y);
+    memcpy(writer_job_ctx->mbs_U, cm->curframe->mbs[1] + worker_order * mb_size_uv, mb_size_uv);
+    memcpy(writer_job_ctx->mbs_V, cm->curframe->mbs[2] + worker_order * mb_size_uv, mb_size_uv);
 
     send_encoded_data(&dma);
 
@@ -452,17 +505,12 @@ int main(int argc, char **argv)
 
   dma.config->complete = DONE;
   dma.config->dma_queue_state[0] = dma.config->dma_queue_state[1] = TRANSFER_COMPLETED;
-  while (dma.config->complete != ACKNOWLEDGED);
+  while (dma.config->ack != ACKNOWLEDGED);
 
-  printf("worker prune writer ack\n");
-
-  reader_config->complete = ACKNOWLEDGED;
+  reader_config->ack = ACKNOWLEDGED;
 
   sci_cleanup(&worker_ctx, &dma);
   free_c63_enc(cm);
-  free(image.Y);
-  free(image.U);
-  free(image.V);
 
   return 0;
 

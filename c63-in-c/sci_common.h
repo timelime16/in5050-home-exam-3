@@ -17,23 +17,26 @@
 
 #define ADAPTER_NO 0
 
-#define MAX_YPW  1920
-#define MAX_YPH  1088  
-#define MAX_UPW  960
-#define MAX_UPH  544
-#define MAX_VPW  960
-#define MAX_VPH  544
-#define MAX_MB_COLS  (MAX_YPW / 8)
-#define MAX_MB_ROWS  (MAX_YPH / 8)
+#define MAX_YPW  (1920 / 2)
+#define MAX_YPH  (1088 / 2)
+#define MAX_UPW  (960 / 2)
+#define MAX_UPH  (544 / 2)
+#define MAX_VPW  (960 / 2)
+#define MAX_VPH  (544 / 2)
+#define MAX_MB_COLS  ((MAX_YPW / 8) / 2)
+#define MAX_MB_ROWS  ((MAX_YPH / 8) / 2)
 
 typedef enum 
 {
     READER,
     WORKER_DATA,
+    WORKER_DATA_2,
     WORKER_ENCODED,
     WRITER,
     READER_WORKER_CTRL,
+    READER_WORKER_CTRL_2,
     WORKER_WRITER_CTRL,
+    WORKER_WRITER_CTRL_2,
 } c63_segment;
 
 typedef enum 
@@ -77,26 +80,6 @@ typedef struct
 
     volatile int initialized;
 } config_t;
-
-// DMA data transfer
-typedef struct dma_buffer 
-{
-    sci_desc_t sd;
-
-    sci_local_segment_t local_segment;
-    sci_dma_queue_t dma_queue;
-
-    sci_map_t segment_map;
-
-    size_t y_size;
-    size_t uv_size;
-    size_t total_size;
-
-    // control
-    sci_local_segment_t control_segment;
-    sci_map_t control_map;
-    config_t *config;
-} dma_buffer_t;
 
 static void sci_check_and_fail(sci_error_t err, const char *ctx, const char *loc)
 {
