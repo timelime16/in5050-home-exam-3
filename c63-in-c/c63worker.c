@@ -225,11 +225,12 @@ static config_t *sci_init_control(worker_t *worker)
 {
   sci_error_t error;
   c63_segment ctrl_seg = READER_WORKER_CTRL + worker_order;
+  int i = 0;
   do 
   {
     SCIConnectSegment(worker->sd, &reader_remote_control_seg, server_node, GET_SEGMENTID(ctrl_seg), ADAPTER_NO,
         SCI_NO_CALLBACK, SCI_NO_ARG, SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
-    fprintf(stderr, "here %d\n", worker_order);
+    if (i++ == 20) {fprintf(stderr, "cannot connect here\n"); SCITerminate(); exit(EXIT_FAILURE);}
   } while (error != SCI_ERR_OK);
 
   fprintf(stderr, "connection done! ctrl (worker to server)\n");
