@@ -97,32 +97,35 @@ static void c63_encode_image(struct c63_common *cm, yuv_t *image)
   if (!cm->curframe->keyframe)
   {
     /* Motion Estimation */
-    c63_motion_estimate(cm);
+    c63_motion_estimate(cm, 0, cm->mb_rows);
 
     /* Motion Compensation */
-    c63_motion_compensate(cm);
+    c63_motion_compensate(cm, 0, cm->mb_rows);
   }
 
   /* DCT and Quantization */
   dct_quantize(image->Y, cm->curframe->predicted->Y, cm->padw[Y_COMPONENT],
       cm->padh[Y_COMPONENT], cm->curframe->residuals->Ydct,
-      cm->quanttbl[Y_COMPONENT]);
+      cm->quanttbl[Y_COMPONENT], 0, cm->padh[Y_COMPONENT]);
 
   dct_quantize(image->U, cm->curframe->predicted->U, cm->padw[U_COMPONENT],
       cm->padh[U_COMPONENT], cm->curframe->residuals->Udct,
-      cm->quanttbl[U_COMPONENT]);
+      cm->quanttbl[U_COMPONENT], 0, cm->padh[U_COMPONENT]);
 
   dct_quantize(image->V, cm->curframe->predicted->V, cm->padw[V_COMPONENT],
       cm->padh[V_COMPONENT], cm->curframe->residuals->Vdct,
-      cm->quanttbl[V_COMPONENT]);
+      cm->quanttbl[V_COMPONENT], 0, cm->padh[V_COMPONENT]);
 
   /* Reconstruct frame for inter-prediction */
   dequantize_idct(cm->curframe->residuals->Ydct, cm->curframe->predicted->Y,
-      cm->ypw, cm->yph, cm->curframe->recons->Y, cm->quanttbl[Y_COMPONENT]);
+      cm->ypw, cm->yph, cm->curframe->recons->Y, cm->quanttbl[Y_COMPONENT],
+      0, cm->padh[Y_COMPONENT]);
   dequantize_idct(cm->curframe->residuals->Udct, cm->curframe->predicted->U,
-      cm->upw, cm->uph, cm->curframe->recons->U, cm->quanttbl[U_COMPONENT]);
+      cm->upw, cm->uph, cm->curframe->recons->U, cm->quanttbl[U_COMPONENT],
+      0, cm->padh[U_COMPONENT]);
   dequantize_idct(cm->curframe->residuals->Vdct, cm->curframe->predicted->V,
-      cm->vpw, cm->vph, cm->curframe->recons->V, cm->quanttbl[V_COMPONENT]);
+      cm->vpw, cm->vph, cm->curframe->recons->V, cm->quanttbl[V_COMPONENT],
+      0, cm->padh[V_COMPONENT]);
 
   /* Function dump_image(), found in common.c, can be used here to check if the
      prediction is correct */
