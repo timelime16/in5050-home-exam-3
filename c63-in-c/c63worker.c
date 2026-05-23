@@ -229,6 +229,7 @@ static config_t *sci_init_control(worker_t *worker)
   {
     SCIConnectSegment(worker->sd, &reader_remote_control_seg, server_node, GET_SEGMENTID(ctrl_seg), ADAPTER_NO,
         SCI_NO_CALLBACK, SCI_NO_ARG, SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
+    fprintf(stderr, "here %d\n", worker_order);
   } while (error != SCI_ERR_OK);
 
   fprintf(stderr, "connection done! ctrl (worker to server)\n");

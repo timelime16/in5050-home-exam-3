@@ -224,7 +224,6 @@ int main(int argc, char **argv)
     }
   }
   
-  fprintf(stderr, "reached here 5 writer\n");
   outfile = fopen(output_file, "wb");
 
   if (outfile == NULL)
