@@ -156,7 +156,7 @@ static void connect_remote_segment(dma_buffer_t *dma, unsigned int worker_id, in
     {
       if (count++ == MAX_RETRY)
       {
-        sci_check_and_fail(error, "SCIConnectSegment", "server to worker")
+        sci_check_and_fail(error, "SCIConnectSegment", "server to worker");
       }
       SCIConnectSegment(dma->sd, &remote_seg[i], worker_id, GET_SEGMENTID(worker_seg), ADAPTER_NO, SCI_NO_CALLBACK,
           SCI_NO_ARG, SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
