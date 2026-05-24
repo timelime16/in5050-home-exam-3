@@ -439,7 +439,7 @@ static void send_encoded_data(dma_buffer_t *dma, dma_context_t *dma_ctx, int buf
     dma->config->dma_queue_state[buf] = TRANSFERRING;
     size_t local_offset = buf * sizeof(writer_job_t);
     size_t remote_offset = (buf + worker_order) * sizeof(writer_job_t);
-    SCIStartDmaTransfer(dma->dma_queue, dma->local_segment, writer_remote_seg, local_offset, sizeof(writer_job_t), remote_offset,
+    SCIStartDmaTransfer(dma->dma_queue[buf], dma->local_segment, writer_remote_seg, local_offset, sizeof(writer_job_t), remote_offset,
         dma_completion_callback, dma_ctx, SCI_FLAG_USE_CALLBACK, &error);
     sci_check_and_fail(error, "SCIStartDMATransfer", "worker");
 }
@@ -528,7 +528,7 @@ int main(int argc, char **argv)
   #pragma unroll
   for (i = 0; i < NUM_SEG; ++i)
   {
-    dma_ctx[i] = dma.config;
+    dma_ctx[i] = &dma.config;
     dma_ctx[i] = i;
   }
 
