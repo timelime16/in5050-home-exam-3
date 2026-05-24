@@ -555,6 +555,8 @@ int main(int argc, char **argv)
   }
 
   int done = 0;
+  int local_done;
+  
   #pragma omp parallel
   {
     while (1) 
@@ -583,7 +585,7 @@ int main(int argc, char **argv)
       #pragma omp barrier
 
       #pragma omp atomic read
-      int local_done = done;
+      local_done = done;
       if (local_done) { break; }
 
       c63_encode_image(cm, &image);
