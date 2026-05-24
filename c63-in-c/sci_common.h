@@ -26,7 +26,7 @@
 #define MAX_MB_COLS  ((MAX_YPW / 8) / 2)
 #define MAX_MB_ROWS  ((MAX_YPH / 8) / 2)
 
-#define MAX_RETRY 50
+#define MAX_RETRY 100
 
 typedef enum 
 {
