@@ -243,7 +243,7 @@ static void sci_init_control(dma_buffer_t *dma)
       c63_segment ctrl_seg = READER_WORKER_CTRL + i;
       printf("reader worker ctrl %d: %d\n", i, ctrl_seg);
 
-      SCICreateSegment(dma->sd, dma->control_segment + i, GET_SEGMENTID(ctrl_seg), size, SCI_NO_CALLBACK,
+      SCICreateSegment(dma->sd, &dma->control_segment[i], GET_SEGMENTID(ctrl_seg), size, SCI_NO_CALLBACK,
         NULL, SCI_NO_FLAGS, &error);
       sci_check_and_fail(error, "SCICreateSegment", "server");
 
@@ -253,7 +253,7 @@ static void sci_init_control(dma_buffer_t *dma)
       SCISetSegmentAvailable(dma->control_segment[i], ADAPTER_NO, SCI_NO_FLAGS, &error);
       sci_check_and_fail(error, "SCISetSegmentAvailable", "server");
 
-      dma->config[i] = (config_t *) SCIMapLocalSegment(dma->control_segment[i], dma->control_map + i, 0, size,
+      dma->config[i] = (config_t *) SCIMapLocalSegment(dma->control_segment[i], &dma->control_map[i], 0, size,
           NULL, SCI_NO_FLAGS, &error);
       sci_check_and_fail(error, "SCIMapLocalSegment", "server");
 
