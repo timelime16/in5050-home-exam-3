@@ -225,7 +225,7 @@ static config_t *sci_init_control(worker_t *worker)
 {
   sci_error_t error;
   c63_segment ctrl_seg = READER_WORKER_CTRL + worker_order;
-  printf("worker %d connecting to reader seg: %d", worker_order, ctrl_seg);
+  printf("worker %d connecting to reader seg: %d\n", worker_order, ctrl_seg);
   int count = 0;
   do 
   {
