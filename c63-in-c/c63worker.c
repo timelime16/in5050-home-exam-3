@@ -160,18 +160,12 @@ static void c63_encode_image(struct c63_common *cm, yuv_t *image)
   #pragma omp barrier
 
   /* Reconstruct frame for inter-prediction */
-  start_y = worker_order * cm->yph / 2;
-  end_y = start_y + cm->yph / 2;
   dequantize_idct(cm->curframe->residuals->Ydct, cm->curframe->predicted->Y,
       cm->ypw, cm->yph, cm->curframe->recons->Y, cm->quanttbl[Y_COMPONENT], 
       start_y, end_y);
-  start_u = worker_order * cm->uph / 2;
-  end_u = start_u + cm->uph / 2;
   dequantize_idct(cm->curframe->residuals->Udct, cm->curframe->predicted->U,
       cm->upw, cm->uph, cm->curframe->recons->U, cm->quanttbl[U_COMPONENT],
       start_u, end_u);
-  start_v = worker_order * cm->vph / 2;
-  end_v = start_v + cm->vph / 2;
   dequantize_idct(cm->curframe->residuals->Vdct, cm->curframe->predicted->V,
       cm->vpw, cm->vph, cm->curframe->recons->V, cm->quanttbl[V_COMPONENT],
       start_v, end_v);
@@ -302,7 +296,8 @@ static void sci_init_dma_ctx(dma_buffer_t *dma)
   sci_check_and_fail(error, "SCICreateDMAQueue", "worker");
 
   // Segment
-  SCICreateSegment(dma->sd, &dma->local_segment, GET_SEGMENTID(WORKER_ENCODED), sizeof(writer_job_t), SCI_NO_CALLBACK,
+  c63_segment worker_seg = WORKER_ENCODED + worker_order;
+  SCICreateSegment(dma->sd, &dma->local_segment, GET_SEGMENTID(worker_seg), sizeof(writer_job_t), SCI_NO_CALLBACK,
     NULL, SCI_NO_FLAGS, &error);
   sci_check_and_fail(error, "SCICreateSegment", "worker dma ctx");
 
