@@ -163,7 +163,7 @@ static void sci_init_writer(writer_t *writer)
     SCISetSegmentAvailable(writer->writer_job_segment, ADAPTER_NO, SCI_NO_FLAGS, &error);
     sci_check_and_fail(error, "SCISetSegmentAvailable", "writer");
 
-    writer->buffer = (writer_job_t **) SCIMapLocalSegment(writer->writer_job_segment, &writer->writer_map, 0, 4 * sizeof(writer_job_t), 
+    writer->buffer = (writer_job_t *[MAX_NUM_WORKERS]) SCIMapLocalSegment(writer->writer_job_segment, &writer->writer_map, 0, 4 * sizeof(writer_job_t), 
       NULL, SCI_NO_FLAGS, &error);
     sci_check_and_fail(error, "SCIMapLocalSegment", "writer");
 }
