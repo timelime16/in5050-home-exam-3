@@ -61,7 +61,7 @@ typedef struct dma_buffer
     sci_desc_t sd;
 
     sci_local_segment_t local_segment;
-    sci_dma_queue_t dma_queue;
+    sci_dma_queue_t dma_queue[NUM_SEG];
 
     sci_map_t segment_map;
 
@@ -72,6 +72,12 @@ typedef struct dma_buffer
     sci_map_t control_map;
     config_t *config;
 } dma_buffer_t;
+
+typedef struct
+{
+  config_t *config;
+  int buf;
+} dma_context_t;
 
 
 
@@ -287,13 +293,18 @@ static config_t *sci_init_control(worker_t *worker)
 
 static void sci_init_dma_ctx(dma_buffer_t *dma)
 {
+  int i;
   sci_error_t error;
   
   SCIOpen(&dma->sd, SCI_NO_FLAGS, &error);
   sci_check_and_fail(error, "SCIOpen", "worker");
 
-  SCICreateDMAQueue(dma->sd, &dma->dma_queue, ADAPTER_NO, 1, SCI_NO_FLAGS, &error);
-  sci_check_and_fail(error, "SCICreateDMAQueue", "worker");
+  #pragma unroll
+  for (i = 0; i < NUM_SEG; ++i)
+  {
+    SCICreateDMAQueue(dma->sd, &dma->dma_queue[i], ADAPTER_NO, 1, SCI_NO_FLAGS, &error);
+    sci_check_and_fail(error, "SCICreateDMAQueue", "worker");
+  }
 
   // Segment
   c63_segment worker_seg = WORKER_ENCODED + worker_order;
@@ -346,7 +357,7 @@ static void sci_init_worker(worker_t *worker, size_t total_size)
 
     c63_segment data_seg = WORKER_DATA + worker_order;
 
-    SCICreateSegment(worker->sd, &worker->frame_segment, GET_SEGMENTID(data_seg), segment_size, SCI_NO_CALLBACK,
+    SCICreateSegment(worker->sd, &worker->frame_segment, GET_SEGMENTID(data_seg), 2 * segment_size, SCI_NO_CALLBACK,
       NULL, SCI_NO_FLAGS, &error);
     sci_check_and_fail(error, "SCICreateSegment", "worker reader");
 
@@ -356,7 +367,7 @@ static void sci_init_worker(worker_t *worker, size_t total_size)
     SCISetSegmentAvailable(worker->frame_segment, ADAPTER_NO, SCI_NO_FLAGS, &error);
     sci_check_and_fail(error, "SCISetSegmentAvailable", "worker");
 
-    worker->frame_buffer = (uint8_t *) SCIMapLocalSegment(worker->frame_segment, &worker->frame_map, 0, segment_size, 
+    worker->frame_buffer = (uint8_t *) SCIMapLocalSegment(worker->frame_segment, &worker->frame_map, 0, 2 * segment_size, 
       NULL, SCI_NO_FLAGS, &error);
     sci_check_and_fail(error, "SCIMapLocalSegment", "worker");
 }
@@ -405,7 +416,7 @@ static void connect_remote_segment(dma_buffer_t *dma)
           SCI_NO_ARG, SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
     } while (error != SCI_ERR_OK);
 
-    SCIMapRemoteSegment(writer_remote_seg, &writer_remote_map, 0, 2 * sizeof(writer_job_t), NULL, SCI_NO_FLAGS, &error);
+    SCIMapRemoteSegment(writer_remote_seg, &writer_remote_map, 0, 4 * sizeof(writer_job_t), NULL, SCI_NO_FLAGS, &error);
     sci_check_and_fail(error, "SCIMapRemoteSegment", "server");
 
     fprintf(stderr, "connection done! (worker to writer)\n");
@@ -413,29 +424,32 @@ static void connect_remote_segment(dma_buffer_t *dma)
 
 static sci_callback_action_t dma_completion_callback(void* arg, sci_dma_queue_t dma_queue, sci_error_t status)
 {
-  dma_buffer_t *dma = (dma_buffer_t *) arg;
-  dma->config->dma_queue_state[0] = TRANSFER_COMPLETED;
+  dma_context_t *ctx = (dma_context_t *) arg;
+  int buf = ctx->buf;
+  ctx->config->dma_queue_state[buf] = TRANSFER_COMPLETED;
   return SCI_CALLBACK_CONTINUE;
 }
 
-static void send_encoded_data(dma_buffer_t *dma)
+static void send_encoded_data(dma_buffer_t *dma, dma_context_t *dma_ctx, int buf)
 {
     sci_error_t error;
 
-    dma->config->dma_queue_state[0] = TRANSFERRING;
+    dma->config->dma_queue_state[buf] = TRANSFERRING;
+    size_t local_offset = buf * sizeof(writer_job_t);
     size_t remote_offset = worker_order * sizeof(writer_job_t);
-    SCIStartDmaTransfer(dma->dma_queue, dma->local_segment, writer_remote_seg, 0, sizeof(writer_job_t), remote_offset,
-        dma_completion_callback, dma, SCI_FLAG_USE_CALLBACK, &error);
+    SCIStartDmaTransfer(dma->dma_queue[buf], dma->local_segment, writer_remote_seg, local_offset, sizeof(writer_job_t), remote_offset,
+        dma_completion_callback, dma_ctx, SCI_FLAG_USE_CALLBACK, &error);
     sci_check_and_fail(error, "SCIStartDMATransfer", "worker");
 }
 
-static inline void wait_for_writer(config_t *config)
+static inline void wait_for_writer(config_t *config, int buf)
 {
-    while (config->dma_queue_state[0] == BUSY);
+    while (config->dma_queue_state[buf] == BUSY);
 }
 
 static void sci_cleanup(worker_t *worker, dma_buffer_t *dma)
 {
+  int i;
   sci_error_t error;
 
   SCIUnmapSegment(worker->frame_map, SCI_NO_FLAGS, &error);
@@ -450,7 +464,11 @@ static void sci_cleanup(worker_t *worker, dma_buffer_t *dma)
   SCIRemoveSegment(dma->control_segment, SCI_NO_FLAGS, &error);
   SCIUnmapSegment(writer_remote_map, SCI_NO_FLAGS, &error);
   SCIDisconnectSegment(writer_remote_seg, SCI_NO_FLAGS, &error);
-  SCIRemoveDMAQueue(dma->dma_queue, SCI_NO_FLAGS, &error);
+
+  for (i = 0; i < NUM_SEG; ++i)
+  {
+    SCIRemoveDMAQueue(dma->dma_queue, SCI_NO_FLAGS, &error);
+  }
 
   SCIClose(worker->sd, SCI_NO_FLAGS, &error);
   SCIClose(dma->sd, SCI_NO_FLAGS, &error);
@@ -468,6 +486,7 @@ int main(int argc, char **argv)
   worker_t worker_ctx;
   config_t *reader_config;
   dma_buffer_t dma;
+  dma_context_t dma_ctx[NUM_SEG];
 
   if (argc == 1) { print_help(); }
 
@@ -504,11 +523,14 @@ int main(int argc, char **argv)
 
   connect_remote_segment(&dma);
 
-  struct c63_common *cm = init_c63_enc(width, height);
+  int i;
+  #pragma unroll
+  for (i = 0; i < NUM_SEG; ++i)
+  {
+    dma_ctx[i].config = dma.config;
+  }
 
-  image.Y = (uint8_t *) malloc(y_size * sizeof(uint8_t));
-  image.U = (uint8_t *) malloc(uv_size * sizeof(uint8_t));
-  image.V = (uint8_t *) malloc(uv_size * sizeof(uint8_t));
+  struct c63_common *cm = init_c63_enc(width, height);
 
   int buf = 0;
 
@@ -530,7 +552,10 @@ int main(int argc, char **argv)
         while (reader_config->dma_queue_state[buf] != TRANSFER_COMPLETED);
         reader_config->dma_queue_state[buf] = BUSY;
 
-        if (reader_config->complete == DONE) { done = 1; }
+        if (reader_config->complete == DONE) { 
+          #pragma omp atomic write
+          done = 1; 
+        }
 
         if (!done) 
         {
@@ -539,11 +564,19 @@ int main(int argc, char **argv)
           image.Y = frame;
           image.U = frame + y_size;
           image.V = frame + uv_size;
+
+          cm->curframe->residuals->Ydct = &writer_job_ctx[buf].Ydct;
+          cm->curframe->residuals->Udct = &writer_job_ctx[buf].Udct;
+          cm->curframe->residuals->Vdct = &writer_job_ctx[buf].Vdct;
+          cm->curframe->mbs[0]          = &writer_job_ctx[buf].mbs_Y;
+          cm->curframe->mbs[1]          = &writer_job_ctx[buf].mbs_U;
+          cm->curframe->mbs[2]          = &writer_job_ctx[buf].mbs_V;
         }
       }
     
       #pragma omp barrier
 
+      #pragma omp atomic read
       if (done) { break; }
 
       c63_encode_image(cm, &image);
@@ -553,17 +586,9 @@ int main(int argc, char **argv)
       #pragma omp single
       {
         // Send to writer
-        wait_for_writer(dma.config);
+        wait_for_writer(dma.config, buf);
 
-        writer_job_ctx->keyframe = cm->curframe->keyframe;
-        memcpy(writer_job_ctx->Ydct, cm->curframe->residuals->Ydct + worker_order * dct_size_y, dct_size_y);
-        memcpy(writer_job_ctx->Udct, cm->curframe->residuals->Udct + worker_order * dct_size_u, dct_size_u);
-        memcpy(writer_job_ctx->Vdct, cm->curframe->residuals->Vdct + worker_order * dct_size_v, dct_size_v);
-        memcpy(writer_job_ctx->mbs_Y, cm->curframe->mbs[0] + worker_order * mb_size_y, mb_size_y);
-        memcpy(writer_job_ctx->mbs_U, cm->curframe->mbs[1] + worker_order * mb_size_uv, mb_size_uv);
-        memcpy(writer_job_ctx->mbs_V, cm->curframe->mbs[2] + worker_order * mb_size_uv, mb_size_uv);
-
-        send_encoded_data(&dma);
+        send_encoded_data(&dma, dma_ctx[buf], buf);
 
         reader_config->dma_queue_state[buf] = AVAILABLE;
 
