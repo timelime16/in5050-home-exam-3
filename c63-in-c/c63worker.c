@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdatomic.h>
+#include <omp.h>
 
 #include <sisci_error.h>
 #include <sisci_api.h>
@@ -76,36 +77,56 @@ typedef struct dma_buffer
 
 static void c63_encode_image(struct c63_common *cm, yuv_t *image)
 {
-  int start_mb_row, end_mb_row;
-  int start_y, end_y;
-  int start_u, end_u;
-  int start_v, end_v;
-  /* Advance to next frame */
-  destroy_frame(cm->refframe);
-  cm->refframe = cm->curframe;
-  cm->curframe = create_frame(cm, image);
+  int tid = omp_get_thread_num();
+  int nth = omp_get_num_threads();
 
-  /* Check if keyframe */
-  if (cm->framenum == 0 || cm->frames_since_keyframe == cm->keyframe_interval)
+  #pragma omp single 
   {
-    cm->curframe->keyframe = 1;
-    cm->frames_since_keyframe = 0;
+    /* Advance to next frame */
+    destroy_frame(cm->refframe);
+    cm->refframe = cm->curframe;
+    cm->curframe = create_frame(cm, image);
 
-    fprintf(stderr, " (keyframe) ");
+    /* Check if keyframe */
+    if (cm->framenum == 0 || cm->frames_since_keyframe == cm->keyframe_interval)
+    {
+      cm->curframe->keyframe = 1;
+      cm->frames_since_keyframe = 0;
+
+      fprintf(stderr, " (keyframe) ");
+    }
+    else { cm->curframe->keyframe = 0; }
   }
-  else { cm->curframe->keyframe = 0; }
 
+  #pragma omp barrier
+  
   if (!cm->curframe->keyframe)
   {
-    start_mb_row = worker_order * cm->mb_rows / 2;
-    end_mb_row = start_mb_row + cm->mb_rows / 2;
+    int worker_mb_start = worker_order * cm->mb_rows / 2;
+    int worker_mb_end = worker_mb_start + cm->mb_rows / 2;
+    int total_rows = worker_mb_end - worker_mb_start;
+    int rows_per_thread = total_rows / nth;
+    int start_mb_row = worker_mb_start + tid * rows_per_thread;
+    int end_mb_row = (tid == nth - 1) ? worker_mb_end : start_mb_row + rows_per_thread;
 
     /* Motion Estimation */
     c63_motion_estimate(cm, start_mb_row, end_mb_row);
 
+    #pragma omp barrier
+
     /* Motion Compensation */
     c63_motion_compensate(cm, start_mb_row, end_mb_row);
+  
   }
+
+  #pragma omp barrier
+
+  int y_start = worker_order * cm->padh[Y_COMPONENT] / 2;
+  int y_end = y_start + cm->padh[Y_COMPONENT] / 2;
+  int y_rows = y_end - y_start;
+  int y_rows_per_thread = y_rows / nth;
+  int start_y = y_start + tid * y_rows_per_thread;
+  int end_y = (tid == nth - 1) ? y_end : start_y + y_rows_per_thread;
 
   /* DCT and Quantization */
   start_y = worker_order * cm->padh[Y_COMPONENT] / 2;
@@ -114,17 +135,29 @@ static void c63_encode_image(struct c63_common *cm, yuv_t *image)
       cm->padh[Y_COMPONENT], cm->curframe->residuals->Ydct,
       cm->quanttbl[Y_COMPONENT], start_y, end_y);
 
-  start_u = worker_order * cm->padh[U_COMPONENT] / 2;
-  end_u = start_u + cm->padh[U_COMPONENT] / 2;
+  int u_start = worker_order * cm->padh[U_COMPONENT] / 2;
+  int u_end = u_start + cm->padh[U_COMPONENT] / 2;
+  int u_rows = u_end - u_start;
+  int u_rows_per_thread = u_rows / nth;
+  int start_u = u_start + tid * u_rows_per_thread;
+  int end_u = (tid == nth - 1) ? u_end : start_u + u_rows_per_thread;
+
   dct_quantize(image->U, cm->curframe->predicted->U, cm->padw[U_COMPONENT],
       cm->padh[U_COMPONENT], cm->curframe->residuals->Udct,
       cm->quanttbl[U_COMPONENT], start_u, end_u);
 
-  start_v = worker_order * cm->padh[V_COMPONENT] / 2;
-  end_v = start_v + cm->padh[V_COMPONENT] / 2;
+  int v_start = worker_order * cm->padh[V_COMPONENT] / 2;
+  int v_end = v_start + cm->padh[V_COMPONENT] / 2;
+  int v_rows = v_end - v_start;
+  int v_rows_per_thread = v_rows / nth;
+  int start_v = v_start + tid * v_rows_per_thread;
+  int end_v = (tid == nth - 1) ? v_end : start_v + v_rows_per_thread;
+
   dct_quantize(image->V, cm->curframe->predicted->V, cm->padw[V_COMPONENT],
       cm->padh[V_COMPONENT], cm->curframe->residuals->Vdct,
       cm->quanttbl[V_COMPONENT], start_v, end_v);
+
+  #pragma omp barrier
 
   /* Reconstruct frame for inter-prediction */
   start_y = worker_order * cm->yph / 2;
@@ -143,13 +176,20 @@ static void c63_encode_image(struct c63_common *cm, yuv_t *image)
       cm->vpw, cm->vph, cm->curframe->recons->V, cm->quanttbl[V_COMPONENT],
       start_v, end_v);
 
+  #pragma omp barrier
+
   /* Function dump_image(), found in common.c, can be used here to check if the
      prediction is correct */
 
   // write_frame(cm);
 
-  ++cm->framenum;
-  ++cm->frames_since_keyframe;
+  #pragma omp single
+  {
+    ++cm->framenum;
+    ++cm->frames_since_keyframe;
+  }
+
+  #pragma omp barrier
 }
 
 struct c63_common* init_c63_enc(int width, int height)
@@ -485,40 +525,58 @@ int main(int argc, char **argv)
 
   reader_config->dma_queue_state[0] = reader_config->dma_queue_state[1] = AVAILABLE;
 
-  while (1) 
+  int done = 0;
+  #pragma omp parallel
   {
-    while (reader_config->dma_queue_state[buf] != TRANSFER_COMPLETED) ;//{fprintf(stderr,"worker prune waiting for transfer complete\n");}
-    reader_config->dma_queue_state[buf] = BUSY;
+    while (1) 
+    {
+      #pragma omp single
+      {
+        while (reader_config->dma_queue_state[buf] != TRANSFER_COMPLETED);
+        reader_config->dma_queue_state[buf] = BUSY;
 
-    if (reader_config->complete == DONE) { break; }
+        if (reader_config->complete == DONE) { done = 1; }
 
-    uint8_t *frame = worker_ctx.frame_buffer + buf * total_size;
+        if (!done) 
+        {
+          uint8_t *frame = worker_ctx.frame_buffer + buf * total_size;
 
-    image.Y = frame;
-    image.U = frame + y_size;
-    image.V = frame + uv_size;
-    // memcpy(image.Y, frame, y_size);
-    // memcpy(image.U, frame + y_size, uv_size);
-    // memcpy(image.V, frame + y_size + uv_size, uv_size);
+          image.Y = frame;
+          image.U = frame + y_size;
+          image.V = frame + uv_size;
+        }
+      }
+    
+      #pragma omp barrier
 
-    c63_encode_image(cm, &image);
+      if (done) { break; }
 
-    // Send to writer
-    wait_for_writer(dma.config);
+      c63_encode_image(cm, &image);
 
-    writer_job_ctx->keyframe = cm->curframe->keyframe;
-    memcpy(writer_job_ctx->Ydct, cm->curframe->residuals->Ydct + worker_order * dct_size_y, dct_size_y);
-    memcpy(writer_job_ctx->Udct, cm->curframe->residuals->Udct + worker_order * dct_size_u, dct_size_u);
-    memcpy(writer_job_ctx->Vdct, cm->curframe->residuals->Vdct + worker_order * dct_size_v, dct_size_v);
-    memcpy(writer_job_ctx->mbs_Y, cm->curframe->mbs[0] + worker_order * mb_size_y, mb_size_y);
-    memcpy(writer_job_ctx->mbs_U, cm->curframe->mbs[1] + worker_order * mb_size_uv, mb_size_uv);
-    memcpy(writer_job_ctx->mbs_V, cm->curframe->mbs[2] + worker_order * mb_size_uv, mb_size_uv);
+      #pragma omp barrier
 
-    send_encoded_data(&dma);
+      #pragma omp single
+      {
+        // Send to writer
+        wait_for_writer(dma.config);
 
-    reader_config->dma_queue_state[buf] = AVAILABLE;
+        writer_job_ctx->keyframe = cm->curframe->keyframe;
+        memcpy(writer_job_ctx->Ydct, cm->curframe->residuals->Ydct + worker_order * dct_size_y, dct_size_y);
+        memcpy(writer_job_ctx->Udct, cm->curframe->residuals->Udct + worker_order * dct_size_u, dct_size_u);
+        memcpy(writer_job_ctx->Vdct, cm->curframe->residuals->Vdct + worker_order * dct_size_v, dct_size_v);
+        memcpy(writer_job_ctx->mbs_Y, cm->curframe->mbs[0] + worker_order * mb_size_y, mb_size_y);
+        memcpy(writer_job_ctx->mbs_U, cm->curframe->mbs[1] + worker_order * mb_size_uv, mb_size_uv);
+        memcpy(writer_job_ctx->mbs_V, cm->curframe->mbs[2] + worker_order * mb_size_uv, mb_size_uv);
 
-    buf ^= 1;
+        send_encoded_data(&dma);
+
+        reader_config->dma_queue_state[buf] = AVAILABLE;
+
+        buf ^= 1;
+      }
+
+      #pragma omp barrier
+    }
   }
 
   printf("worker: Hello World!\n");

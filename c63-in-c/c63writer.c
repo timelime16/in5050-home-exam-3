@@ -168,7 +168,7 @@ static void sci_init_writer(writer_t *writer)
     sci_check_and_fail(error, "SCIMapLocalSegment", "writer");
 }
 
-static void wait_for_workers(config_t *config[MAX_NUM_WORKERS]) 
+static inline void wait_for_workers(config_t *config[MAX_NUM_WORKERS]) 
 {
   int i;
   #pragma unroll

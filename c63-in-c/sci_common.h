@@ -83,7 +83,7 @@ typedef struct
     volatile int initialized;
 } config_t;
 
-static void sci_check_and_fail(sci_error_t err, const char *ctx, const char *loc)
+static inline void sci_check_and_fail(sci_error_t err, const char *ctx, const char *loc)
 {
     if (err != SCI_ERR_OK)
     {

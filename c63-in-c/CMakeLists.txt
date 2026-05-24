@@ -12,6 +12,7 @@ project(Codec63
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../cmake")
 
 find_package(SISCI REQUIRED)
+find_package(OpenMP REQUIRED)
 
 # Use the C standard from 2011. No effect on Windows (Visual Studio ignores
 # the standards anyway).
@@ -71,7 +72,7 @@ add_executable(c63worker
                c63worker.c c63.h)
 target_compile_options(c63worker PUBLIC -D_REENTRANT)
 target_link_libraries(c63worker c63 m)
-target_link_libraries(c63worker SISCI)
+target_link_libraries(c63worker SISCI OpenMP::OpenMP_C)
 
 add_executable(c63writer
                c63writer.c c63.h
