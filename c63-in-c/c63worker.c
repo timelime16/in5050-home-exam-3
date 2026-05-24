@@ -225,12 +225,15 @@ static config_t *sci_init_control(worker_t *worker)
 {
   sci_error_t error;
   c63_segment ctrl_seg = READER_WORKER_CTRL + worker_order;
-  int i = 0;
+  int count = 0;
   do 
   {
+    if (count++ == MAX_RETRY)
+    {
+      sci_check_and_failure(error, "SCIConnectSegment", "worker to reader");
+    }
     SCIConnectSegment(worker->sd, &reader_remote_control_seg, server_node, GET_SEGMENTID(ctrl_seg), ADAPTER_NO,
         SCI_NO_CALLBACK, SCI_NO_ARG, SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
-    if (i++ == 20) {fprintf(stderr, "cannot connect here (worker): %s\n", SCIGetErrorString(error)); SCITerminate(); exit(EXIT_FAILURE);}
   } while (error != SCI_ERR_OK);
 
   fprintf(stderr, "connection done! ctrl (worker to server)\n");
@@ -348,8 +351,13 @@ static void connect_remote_segment(dma_buffer_t *dma)
 {
     sci_error_t error;
 
+    int count = 0;
     do 
     {
+      if (count++ == MAX_RETRY)
+      {
+        sci_check_and_failure(error, "SCIConnectSegment", "worker to writer")
+      }
       SCIConnectSegment(dma->sd, &writer_remote_seg, writer_node, GET_SEGMENTID(WRITER), ADAPTER_NO, SCI_NO_CALLBACK,
           SCI_NO_ARG, SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
     } while (error != SCI_ERR_OK);

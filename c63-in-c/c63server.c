@@ -149,13 +149,17 @@ static void connect_remote_segment(dma_buffer_t *dma, unsigned int worker_id, in
 {
     sci_error_t error;
     printf("connecting to: %d\n", worker_id);
+
     c63_segment worker_seg = WORKER_DATA + i;
-    int k = 0;
+    int count = 0;
     do 
     {
+      if (count++ == MAX_RETRY)
+      {
+        sci_check_and_failure(error, "SCIConnectSegment", "server to worker")
+      }
       SCIConnectSegment(dma->sd, &remote_seg[i], worker_id, GET_SEGMENTID(worker_seg), ADAPTER_NO, SCI_NO_CALLBACK,
           SCI_NO_ARG, SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
-    if (k++ == 20) {fprintf(stderr, "cannot connect here (server): %s\n", SCIGetErrorString(error)); SCITerminate(); exit(EXIT_FAILURE);}
     } while (error != SCI_ERR_OK);
 
     SCIMapRemoteSegment(remote_seg[i], &remote_map[i], 0, 2 * dma->total_size, NULL, SCI_NO_FLAGS, &error);

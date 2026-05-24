@@ -120,9 +120,14 @@ static config_t *sci_init_control(writer_t *writer, int i)
 {
   sci_error_t error;
   c63_segment ctrl_seg = WORKER_WRITER_CTRL + i;
-
+  int count = 0;
+  
   do 
   {
+    if (count++ == MAX_RETRY)
+    {
+      sci_check_and_failure(error, "SCIConnectSegment", "writer to worker")
+    }
     SCIConnectSegment(writer->sd, &worker_remote_control_seg[i], worker_nodes[i], GET_SEGMENTID(ctrl_seg), ADAPTER_NO,
         SCI_NO_CALLBACK, SCI_NO_ARG, SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
   } while (error != SCI_ERR_OK);
