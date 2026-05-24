@@ -230,7 +230,7 @@ static config_t *sci_init_control(worker_t *worker)
   {
     if (count++ == MAX_RETRY)
     {
-      sci_check_and_failure(error, "SCIConnectSegment", "worker to reader");
+      sci_check_and_fail(error, "SCIConnectSegment", "worker to reader");
     }
     SCIConnectSegment(worker->sd, &reader_remote_control_seg, server_node, GET_SEGMENTID(ctrl_seg), ADAPTER_NO,
         SCI_NO_CALLBACK, SCI_NO_ARG, SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
@@ -356,7 +356,7 @@ static void connect_remote_segment(dma_buffer_t *dma)
     {
       if (count++ == MAX_RETRY)
       {
-        sci_check_and_failure(error, "SCIConnectSegment", "worker to writer");
+        sci_check_and_fail(error, "SCIConnectSegment", "worker to writer");
       }
       SCIConnectSegment(dma->sd, &writer_remote_seg, writer_node, GET_SEGMENTID(WRITER), ADAPTER_NO, SCI_NO_CALLBACK,
           SCI_NO_ARG, SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
