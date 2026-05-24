@@ -528,8 +528,8 @@ int main(int argc, char **argv)
   #pragma unroll
   for (i = 0; i < NUM_SEG; ++i)
   {
-    dma_ctx[i] = &dma.config;
-    dma_ctx[i] = i;
+    dma_ctx[i].config = dma.config;
+    dma_ctx[i].buf = i;
   }
 
   connect_remote_segment(&dma);
