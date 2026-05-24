@@ -42,7 +42,7 @@ typedef struct dma_buffer
     sci_desc_t sd;
 
     sci_local_segment_t local_segment;
-    sci_dma_queue_t dma_queue[MAX_NUM_WORKERS];
+    sci_dma_queue_t dma_queue[MAX_NUM_WORKERS][NUM_SEG];
 
     sci_map_t segment_map;
 
@@ -121,12 +121,15 @@ static void sci_init(dma_buffer_t *dma)
     SCIOpen(&dma->sd, SCI_NO_FLAGS, &error);
     sci_check_and_fail(error, "SCIOpen", "server");
 
-    int i;
+    int i, j;
     #pragma unroll
     for (i = 0; i < MAX_NUM_WORKERS; ++i)
     {
-      SCICreateDMAQueue(dma->sd, &dma->dma_queue[i], ADAPTER_NO, 1, SCI_NO_FLAGS, &error);
-      sci_check_and_fail(error, "SCICreateDMAQueue", "server");
+      for (j = 0; j < NUM_SEG; ++j)
+      {
+        SCICreateDMAQueue(dma->sd, &dma->dma_queue[i][j], ADAPTER_NO, 1, SCI_NO_FLAGS, &error);
+        sci_check_and_fail(error, "SCICreateDMAQueue", "server");
+      }
     }
 
     // Segment
@@ -187,14 +190,14 @@ static void send_frame_data(dma_buffer_t *dma, int buf, dma_context_t *dma_ctx, 
     size_t offset = buf * dma->total_size;
 
     dma->config[i]->dma_queue_state[buf] = TRANSFERRING;
-    SCIStartDmaTransfer(dma->dma_queue[i], dma->local_segment, remote_seg[i], offset, dma->total_size, offset,
+    SCIStartDmaTransfer(dma->dma_queue[i][buf], dma->local_segment, remote_seg[i], offset, dma->total_size, offset,
         dma_completion_callback, dma_ctx, SCI_FLAG_USE_CALLBACK, &error);
     sci_check_and_fail(error, "SCIStartDMATransfer", "server");
 }
 
 static void sci_cleanup(dma_buffer_t *dma)
 {
-    int i;
+    int i, j;
     sci_error_t error;
 
     // Segments
@@ -214,7 +217,10 @@ static void sci_cleanup(dma_buffer_t *dma)
       // Config
       SCIUnmapSegment(dma->control_map[i], SCI_NO_FLAGS, &error);
       SCIRemoveSegment(dma->control_segment[i], SCI_NO_FLAGS, &error);
-      SCIRemoveDMAQueue(dma->dma_queue[i], SCI_NO_FLAGS, &error);
+      for (j = 0; j < NUM_SEG; ++j)
+      {
+        SCIRemoveDMAQueue(dma->dma_queue[i][j], SCI_NO_FLAGS, &error);
+      }
     }
 
     SCIClose(dma->sd, SCI_NO_FLAGS, &error);
@@ -363,12 +369,12 @@ int main(int argc, char **argv)
     int curr_buf = buf;
     buf ^= 1; 
 
-    wait_for_workers(&dma, curr_buf);
-
     image = read_yuv(infile, &dma, width, height, curr_buf);
     if (!image) { break; }
 
     printf("Encoding frame %d, ", numframes);
+
+    wait_for_workers(&dma, curr_buf);
     #pragma unroll
     for (i = 0; i < MAX_NUM_WORKERS; ++i)
     {
