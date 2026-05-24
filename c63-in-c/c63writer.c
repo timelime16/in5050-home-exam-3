@@ -38,7 +38,7 @@ typedef struct
 
     sci_map_t writer_map;
 
-    writer_job_t *buffer;
+    writer_job_t *buffer[MAX_NUM_WORKERS];
 
 } writer_t;
 
@@ -280,12 +280,12 @@ int main(int argc, char **argv)
     cm->curframe->keyframe = writer_ctx.buffer[0].keyframe;
     for (i = 0; i < MAX_NUM_WORKERS; ++i)
     {
-        memcpy(cm->curframe->residuals->Ydct + i * dct_size_y,   writer_ctx.buffer[i][buf].Ydct,  dct_size_y);
-        memcpy(cm->curframe->residuals->Udct + i * dct_size_u,   writer_ctx.buffer[i][buf].Udct,  dct_size_u);
-        memcpy(cm->curframe->residuals->Vdct + i * dct_size_v,   writer_ctx.buffer[i][buf].Vdct,  dct_size_v);
-        memcpy(cm->curframe->mbs[0]          + i * mb_size_y/sizeof(struct macroblock),  writer_ctx.buffer[i][buf].mbs_Y, mb_size_y);
-        memcpy(cm->curframe->mbs[1]          + i * mb_size_uv/sizeof(struct macroblock), writer_ctx.buffer[i][buf].mbs_U, mb_size_uv);
-        memcpy(cm->curframe->mbs[2]          + i * mb_size_uv/sizeof(struct macroblock), writer_ctx.buffer[i][buf].mbs_V, mb_size_uv);
+        memcpy(cm->curframe->residuals->Ydct + i * dct_size_y,   writer_ctx[i].buffer[buf].Ydct,  dct_size_y);
+        memcpy(cm->curframe->residuals->Udct + i * dct_size_u,   writer_ctx[i].buffer[buf].Udct,  dct_size_u);
+        memcpy(cm->curframe->residuals->Vdct + i * dct_size_v,   writer_ctx[i].buffer[buf].Vdct,  dct_size_v);
+        memcpy(cm->curframe->mbs[0]          + i * mb_size_y/sizeof(struct macroblock),  writer_ctx[i].buffer[buf].mbs_Y, mb_size_y);
+        memcpy(cm->curframe->mbs[1]          + i * mb_size_uv/sizeof(struct macroblock), writer_ctx[i].buffer[buf].mbs_U, mb_size_uv);
+        memcpy(cm->curframe->mbs[2]          + i * mb_size_uv/sizeof(struct macroblock), writer_ctx[i].buffer[buf].mbs_V, mb_size_uv);
     }
 
     write_frame(cm);
