@@ -583,7 +583,7 @@ int main(int argc, char **argv)
       #pragma omp barrier
 
       #pragma omp atomic read
-      if (done) { break; }
+      if (done == 1) { break; }
 
       c63_encode_image(cm, &image);
 
