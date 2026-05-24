@@ -277,7 +277,7 @@ int main(int argc, char **argv)
       if (config[i]->complete == DONE) { break; }
     }
 
-    cm->curframe->keyframe = writer_ctx.buffer[0].keyframe;
+    cm->curframe->keyframe = writer_ctx.buffer[0][0].keyframe;
     for (i = 0; i < MAX_NUM_WORKERS; ++i)
     {
         memcpy(cm->curframe->residuals->Ydct + i * dct_size_y,   writer_ctx.buffer[i][buf].Ydct,  dct_size_y);
