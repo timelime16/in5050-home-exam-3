@@ -510,11 +510,17 @@ int main(int argc, char **argv)
   int buf = 0;
 
     printf("worker prune 10\n");
-  size_t dct_size_y = cm->ypw * cm->yph * sizeof(int16_t) / 2;
-  size_t dct_size_u = cm->upw * cm->uph * sizeof(int16_t) / 2;
-  size_t dct_size_v = cm->vpw * cm->vph * sizeof(int16_t) / 2;
-  size_t mb_size_y = cm->mb_cols * cm->mb_rows * sizeof(struct macroblock) / 2;
-  size_t mb_size_uv = (cm->mb_cols/2) * (cm->mb_rows/2) * sizeof(struct macroblock) / 2;
+  int dct_count_y = (cm->ypw * cm->yph) / 2;
+  int dct_count_u = (cm->upw * cm->uph) / 2;
+  int dct_count_v = (cm->vpw * cm->vph) / 2;
+  int mb_count_y = (cm->mb_cols * cm->mb_rows) / 2;
+  int mb_count_uv = ((cm->mb_cols/2) * (cm->mb_rows/2)) / 2;
+
+  size_t dct_size_y = dct_count_y * sizeof(int16_t);
+  size_t dct_size_u = dct_count_u * sizeof(int16_t);
+  size_t dct_size_v = dct_count_v * sizeof(int16_t);
+  size_t mb_size_y = mb_count_y * sizeof(struct macroblock);
+  size_t mb_size_uv = mb_count_uv * sizeof(struct macroblock);
 
   #pragma unroll
   for (i = 0; i < NUM_SEG; ++i)
@@ -547,12 +553,12 @@ int main(int argc, char **argv)
     printf("worker prune 5\n");
 
     writer_job_ctx[buf]->keyframe = cm->curframe->keyframe;
-    memcpy(writer_job_ctx[buf]->Ydct, cm->curframe->residuals->Ydct + worker_order * dct_size_y, dct_size_y);
-    memcpy(writer_job_ctx[buf]->Udct, cm->curframe->residuals->Udct + worker_order * dct_size_u, dct_size_u);
-    memcpy(writer_job_ctx[buf]->Vdct, cm->curframe->residuals->Vdct + worker_order * dct_size_v, dct_size_v);
-    memcpy(writer_job_ctx[buf]->mbs_Y, cm->curframe->mbs[0] + worker_order * mb_size_y, mb_size_y);
-    memcpy(writer_job_ctx[buf]->mbs_U, cm->curframe->mbs[1] + worker_order * mb_size_uv, mb_size_uv);
-    memcpy(writer_job_ctx[buf]->mbs_V, cm->curframe->mbs[2] + worker_order * mb_size_uv, mb_size_uv);
+    memcpy(writer_job_ctx[buf]->Ydct, cm->curframe->residuals->Ydct + worker_order * dct_count_y, dct_size_y);
+    memcpy(writer_job_ctx[buf]->Udct, cm->curframe->residuals->Udct + worker_order * dct_count_u, dct_size_u);
+    memcpy(writer_job_ctx[buf]->Vdct, cm->curframe->residuals->Vdct + worker_order * dct_count_v, dct_size_v);
+    memcpy(writer_job_ctx[buf]->mbs_Y, cm->curframe->mbs[0] + worker_order * mb_count_y, mb_size_y);
+    memcpy(writer_job_ctx[buf]->mbs_U, cm->curframe->mbs[1] + worker_order * mb_count_uv, mb_size_uv);
+    memcpy(writer_job_ctx[buf]->mbs_V, cm->curframe->mbs[2] + worker_order * mb_count_uv, mb_size_uv);
 
     printf("worker prune 6\n");
 
