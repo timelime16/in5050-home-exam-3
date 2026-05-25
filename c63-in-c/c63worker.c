@@ -88,12 +88,10 @@ static void c63_encode_image(struct c63_common *cm, yuv_t *image)
 
   #pragma omp single 
   {
-    printf("worker prune 1\n");
     /* Advance to next frame */
     destroy_frame(cm->refframe);
     cm->refframe = cm->curframe;
     cm->curframe = create_frame(cm, image);
-    printf("worker prune 2\n");
 
     /* Check if keyframe */
     if (cm->framenum == 0 || cm->frames_since_keyframe == cm->keyframe_interval)
@@ -105,11 +103,12 @@ static void c63_encode_image(struct c63_common *cm, yuv_t *image)
     }
     else { cm->curframe->keyframe = 0; }
   }
-
+printf("worker prune 1\n");
   #pragma omp barrier
   
   if (!cm->curframe->keyframe)
   {
+    printf("worker prune 2\n");
     int worker_mb_start = worker_order * cm->mb_rows / 2;
     int worker_mb_end = worker_mb_start + cm->mb_rows / 2;
     int total_rows = worker_mb_end - worker_mb_start;
@@ -119,12 +118,12 @@ static void c63_encode_image(struct c63_common *cm, yuv_t *image)
 
     /* Motion Estimation */
     c63_motion_estimate(cm, start_mb_row, end_mb_row);
-
+printf("worker prune 3\n");
     #pragma omp barrier
 
     /* Motion Compensation */
     c63_motion_compensate(cm, start_mb_row, end_mb_row);
-  
+  printf("worker prune 4\n");
   }
 
   #pragma omp barrier
