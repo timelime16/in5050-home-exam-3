@@ -275,6 +275,7 @@ int main(int argc, char **argv)
 
   int buf = 0;
 
+  int num_frames = 0;
   while (1) 
   {
     wait_for_workers(config, buf);
@@ -303,6 +304,7 @@ int main(int argc, char **argv)
     // memcpy(cm->curframe->mbs[2], writer_ctx.buffer->mbs_V, (cm->mb_cols/2) * (cm->mb_rows/2) * sizeof(struct macroblock));
 
     write_frame(cm);
+    printf("Frame %d written\n", num_frames++);
 
     for (i = 0; i < MAX_NUM_WORKERS; ++i)
     {
