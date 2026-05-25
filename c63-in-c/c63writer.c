@@ -267,11 +267,17 @@ int main(int argc, char **argv)
   /* FIXME: You should remove this when you have real data to write */
   // fwrite("HELLO\n", 6, 1, outfile);
 
-  size_t dct_size_y = cm->ypw * cm->yph * sizeof(int16_t) / 2;
-  size_t dct_size_u = cm->upw * cm->uph * sizeof(int16_t) / 2;
-  size_t dct_size_v = cm->vpw * cm->vph * sizeof(int16_t) / 2;
-  size_t mb_size_y = cm->mb_cols * cm->mb_rows * sizeof(struct macroblock) / 2;
-  size_t mb_size_uv = (cm->mb_cols/2) * (cm->mb_rows/2) * sizeof(struct macroblock) / 2;
+  int dct_count_y = (cm->ypw * cm->yph) / 2;
+  int dct_count_u = (cm->upw * cm->uph) / 2;
+  int dct_count_v = (cm->vpw * cm->vph) / 2;
+  int mb_count_y = (cm->mb_cols * cm->mb_rows) / 2;
+  int mb_count_uv = ((cm->mb_cols/2) * (cm->mb_rows/2)) / 2;
+
+  size_t dct_size_y = dct_count_y * sizeof(int16_t);
+  size_t dct_size_u = dct_count_u * sizeof(int16_t);
+  size_t dct_size_v = dct_count_v * sizeof(int16_t);
+  size_t mb_size_y = mb_count_y * sizeof(struct macroblock);
+  size_t mb_size_uv = mb_count_uv * sizeof(struct macroblock);
 
   int buf = 0;
 
@@ -292,12 +298,12 @@ int main(int argc, char **argv)
     cm->curframe->keyframe = writer_ctx.buffer[0][0]->keyframe;
     for (i = 0; i < MAX_NUM_WORKERS; ++i)
     {
-        memcpy(cm->curframe->residuals->Ydct + i * dct_size_y,   writer_ctx.buffer[i][buf]->Ydct,  dct_size_y);
-        memcpy(cm->curframe->residuals->Udct + i * dct_size_u,   writer_ctx.buffer[i][buf]->Udct,  dct_size_u);
-        memcpy(cm->curframe->residuals->Vdct + i * dct_size_v,   writer_ctx.buffer[i][buf]->Vdct,  dct_size_v);
-        memcpy(cm->curframe->mbs[0]          + i * mb_size_y/sizeof(struct macroblock),  writer_ctx.buffer[i][buf]->mbs_Y, mb_size_y);
-        memcpy(cm->curframe->mbs[1]          + i * mb_size_uv/sizeof(struct macroblock), writer_ctx.buffer[i][buf]->mbs_U, mb_size_uv);
-        memcpy(cm->curframe->mbs[2]          + i * mb_size_uv/sizeof(struct macroblock), writer_ctx.buffer[i][buf]->mbs_V, mb_size_uv);
+        memcpy(cm->curframe->residuals->Ydct + i * dct_count_y,   writer_ctx.buffer[i][buf]->Ydct,  dct_size_y);
+        memcpy(cm->curframe->residuals->Udct + i * dct_count_u,   writer_ctx.buffer[i][buf]->Udct,  dct_size_u);
+        memcpy(cm->curframe->residuals->Vdct + i * dct_count_v,   writer_ctx.buffer[i][buf]->Vdct,  dct_size_v);
+        memcpy(cm->curframe->mbs[0]          + i * mb_count_y,  writer_ctx.buffer[i][buf]->mbs_Y, mb_size_y);
+        memcpy(cm->curframe->mbs[1]          + i * mb_count_uv, writer_ctx.buffer[i][buf]->mbs_U, mb_size_uv);
+        memcpy(cm->curframe->mbs[2]          + i * mb_count_uv, writer_ctx.buffer[i][buf]->mbs_V, mb_size_uv);
     }
 
     printf("writer prune 4\n");
