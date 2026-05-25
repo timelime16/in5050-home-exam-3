@@ -232,7 +232,7 @@ static inline void wait_for_workers(dma_buffer_t *dma, int buf)
     int i;
     for (i = 0; i < MAX_NUM_WORKERS; ++i)
     {
-      while (dma->config[i]->dma_queue_state[buf] == BUSY);
+      while (dma->config[i]->dma_queue_state[buf] != AVAILABLE);
     }
 }
 
@@ -366,25 +366,24 @@ int main(int argc, char **argv)
   
   while (1)
   {
-    int curr_buf = buf;
-    buf ^= 1; 
-
-    image = read_yuv(infile, &dma, width, height, curr_buf);
+    image = read_yuv(infile, &dma, width, height, buf);
     if (!image) { break; }
 
     printf("Encoding frame %d, ", numframes);
 
-    wait_for_workers(&dma, curr_buf);
+    wait_for_workers(&dma, buf);
     #pragma unroll
     for (i = 0; i < MAX_NUM_WORKERS; ++i)
     {
-      send_frame_data(&dma, curr_buf, &dma_ctx[i][curr_buf], i);
+      send_frame_data(&dma, buf, &dma_ctx[i][buf], i);
     }
     printf("Done!\n");
 
     ++numframes;
 
     if (limit_numframes && numframes >= limit_numframes) { break; }
+
+    buf ^= 1;
   }
 
   // send signal to close workers

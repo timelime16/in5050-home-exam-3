@@ -503,9 +503,9 @@ int main(int argc, char **argv)
 
   struct c63_common *cm = init_c63_enc(width, height);
 
-  image.Y = (uint8_t *) malloc(y_size * sizeof(uint8_t));
-  image.U = (uint8_t *) malloc(uv_size * sizeof(uint8_t));
-  image.V = (uint8_t *) malloc(uv_size * sizeof(uint8_t));
+  // image.Y = (uint8_t *) malloc(y_size * sizeof(uint8_t));
+  // image.U = (uint8_t *) malloc(uv_size * sizeof(uint8_t));
+  // image.V = (uint8_t *) malloc(uv_size * sizeof(uint8_t));
 
   int buf = 0;
 
