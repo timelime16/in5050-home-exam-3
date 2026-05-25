@@ -190,10 +190,13 @@ printf("worker prune 6\n");
 
   #pragma omp single
   {
+
+ printf("worker prune 12\n");
     ++cm->framenum;
     ++cm->frames_since_keyframe;
-  }
 
+ printf("worker prune 13\n");
+  }
   #pragma omp barrier
 }
 
