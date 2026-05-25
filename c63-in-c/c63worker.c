@@ -125,7 +125,7 @@ printf("worker prune 3\n");
     c63_motion_compensate(cm, start_mb_row, end_mb_row);
   printf("worker prune 4\n");
   }
-
+printf("worker prune 5s\n");
   #pragma omp barrier
 
   int y_start = worker_order * cm->padh[Y_COMPONENT] / 2;
