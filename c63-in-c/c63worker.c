@@ -600,9 +600,10 @@ int main(int argc, char **argv)
       #pragma omp single
       {
         // Send to writer
+        printf("worker prune 9\n");
         wait_for_writer(dma.config, buf);
 
-        
+        printf("worker prune 10\n");
         writer_job_ctx[buf]->keyframe = cm->curframe->keyframe;
         memcpy(writer_job_ctx[buf]->Ydct, cm->curframe->residuals->Ydct + worker_order * dct_size_y, dct_size_y);
         memcpy(writer_job_ctx[buf]->Udct, cm->curframe->residuals->Udct + worker_order * dct_size_u, dct_size_u);
@@ -610,6 +611,7 @@ int main(int argc, char **argv)
         memcpy(writer_job_ctx[buf]->mbs_Y, cm->curframe->mbs[0] + worker_order * mb_size_y, mb_size_y);
         memcpy(writer_job_ctx[buf]->mbs_U, cm->curframe->mbs[1] + worker_order * mb_size_uv, mb_size_uv);
         memcpy(writer_job_ctx[buf]->mbs_V, cm->curframe->mbs[2] + worker_order * mb_size_uv, mb_size_uv);
+        printf("worker prune 11\n");
 
         send_encoded_data(&dma, &dma_ctx[buf], buf);
 
