@@ -125,7 +125,7 @@ printf("worker prune 3\n");
     c63_motion_compensate(cm, start_mb_row, end_mb_row);
   printf("worker prune 4\n");
   }
-printf("worker prune 5s\n");
+printf("worker prune 5\n");
   #pragma omp barrier
 
   int y_start = worker_order * cm->padh[Y_COMPONENT] / 2;
@@ -141,6 +141,8 @@ printf("worker prune 5s\n");
   dct_quantize(image->Y, cm->curframe->predicted->Y, cm->padw[Y_COMPONENT],
       cm->padh[Y_COMPONENT], cm->curframe->residuals->Ydct,
       cm->quanttbl[Y_COMPONENT], start_y, end_y);
+    
+printf("worker prune 6\n");
 
   int u_start = worker_order * cm->padh[U_COMPONENT] / 2;
   int u_end = u_start + cm->padh[U_COMPONENT] / 2;
