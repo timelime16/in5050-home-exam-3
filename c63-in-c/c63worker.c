@@ -168,6 +168,7 @@ printf("worker prune 6\n");
 
   #pragma omp barrier
 
+  printf("worker prune 7\n");
   /* Reconstruct frame for inter-prediction */
   dequantize_idct(cm->curframe->residuals->Ydct, cm->curframe->predicted->Y,
       cm->ypw, cm->yph, cm->curframe->recons->Y, cm->quanttbl[Y_COMPONENT], 
@@ -179,6 +180,7 @@ printf("worker prune 6\n");
       cm->vpw, cm->vph, cm->curframe->recons->V, cm->quanttbl[V_COMPONENT],
       start_v, end_v);
 
+      printf("worker prune 8\n");
   #pragma omp barrier
 
   /* Function dump_image(), found in common.c, can be used here to check if the
