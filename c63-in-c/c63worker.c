@@ -509,6 +509,7 @@ int main(int argc, char **argv)
 
   int buf = 0;
 
+    printf("worker prune 10\n");
   size_t dct_size_y = cm->ypw * cm->yph * sizeof(int16_t) / 2;
   size_t dct_size_u = cm->upw * cm->uph * sizeof(int16_t) / 2;
   size_t dct_size_v = cm->vpw * cm->vph * sizeof(int16_t) / 2;
@@ -520,9 +521,6 @@ int main(int argc, char **argv)
   {
     reader_config->dma_queue_state[i] = AVAILABLE;
   }
-
-  int done = 0;
-  int local_done;
   
   while (1) 
   {
