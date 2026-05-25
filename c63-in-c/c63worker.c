@@ -88,10 +88,12 @@ static void c63_encode_image(struct c63_common *cm, yuv_t *image)
 
   #pragma omp single 
   {
+    printf("worker prune 1\n");
     /* Advance to next frame */
     destroy_frame(cm->refframe);
     cm->refframe = cm->curframe;
     cm->curframe = create_frame(cm, image);
+    printf("worker prune 2\n");
 
     /* Check if keyframe */
     if (cm->framenum == 0 || cm->frames_since_keyframe == cm->keyframe_interval)
@@ -563,17 +565,14 @@ int main(int argc, char **argv)
     {
       #pragma omp single
       {
-        printf("worker prune 1\n");
         while (reader_config->dma_queue_state[buf] != TRANSFER_COMPLETED);
         reader_config->dma_queue_state[buf] = BUSY;
 
-        printf("worker prune 2\n");
         if (reader_config->complete == DONE)
         { 
           #pragma omp atomic write
           done = 1; 
         }
-        printf("worker prune 3\n");
 
         if (!done) 
         {
@@ -583,19 +582,16 @@ int main(int argc, char **argv)
           image.U = frame + y_size;
           image.V = frame + uv_size;
         }
-        printf("worker prune 4\n");
       }
     
       #pragma omp barrier
 
-      printf("worker prune 5\n");
       #pragma omp atomic read
       local_done = done;
       if (local_done) { break; }
-      printf("worker prune 6\n");
 
       c63_encode_image(cm, &image);
-printf("worker prune 7\n");
+
       #pragma omp barrier
 
       #pragma omp single
@@ -603,7 +599,7 @@ printf("worker prune 7\n");
         // Send to writer
         wait_for_writer(dma.config, buf);
 
-        printf("worker prune 8\n");
+        
         writer_job_ctx[buf]->keyframe = cm->curframe->keyframe;
         memcpy(writer_job_ctx[buf]->Ydct, cm->curframe->residuals->Ydct + worker_order * dct_size_y, dct_size_y);
         memcpy(writer_job_ctx[buf]->Udct, cm->curframe->residuals->Udct + worker_order * dct_size_u, dct_size_u);
@@ -611,9 +607,9 @@ printf("worker prune 7\n");
         memcpy(writer_job_ctx[buf]->mbs_Y, cm->curframe->mbs[0] + worker_order * mb_size_y, mb_size_y);
         memcpy(writer_job_ctx[buf]->mbs_U, cm->curframe->mbs[1] + worker_order * mb_size_uv, mb_size_uv);
         memcpy(writer_job_ctx[buf]->mbs_V, cm->curframe->mbs[2] + worker_order * mb_size_uv, mb_size_uv);
-        printf("worker prune 9\n");
+
         send_encoded_data(&dma, &dma_ctx[buf], buf);
-        printf("worker prune 10\n");
+
         reader_config->dma_queue_state[buf] = AVAILABLE;
 
         buf ^= 1;
