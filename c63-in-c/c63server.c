@@ -232,7 +232,7 @@ static inline void wait_for_workers(dma_buffer_t *dma, int buf)
     int i;
     for (i = 0; i < MAX_NUM_WORKERS; ++i)
     {
-      while (dma->config[i]->dma_queue_state[buf] == AVAILABLE);
+      while (dma->config[i]->dma_queue_state[buf] == BUSY);
     }
 }
 
