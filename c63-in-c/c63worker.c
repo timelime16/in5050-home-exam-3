@@ -313,7 +313,7 @@ static void sci_init_dma_ctx(dma_buffer_t *dma)
   dma->config->width = width;
   dma->config->height = height;
   dma->config->writer = writer_node;
-  dma->config->complete = ONGOING;
+  dma->config->complete[0] = dma->config->complete[1] = ONGOING;
   dma->config->ack      = ONGOING;
   dma->config->initialized = 1;
 }
@@ -526,13 +526,24 @@ int main(int argc, char **argv)
   {
     reader_config->dma_queue_state[i] = AVAILABLE;
   }
+
+  int both_buf_done = 0;
   
   while (1) 
   {
     while (reader_config->dma_queue_state[buf] != TRANSFER_COMPLETED);
     reader_config->dma_queue_state[buf] = BUSY;
 
-    if (reader_config->complete == DONE) { break; }
+    if (reader_config->complete[buf] == DONE) 
+    { 
+      if (both_buf_done) { break; }
+      else 
+      {
+        both_buf_done = 1;
+        buf ^= 1;
+        continue;
+      }
+    }
 
     uint8_t *frame = worker_ctx.frame_buffer + buf * total_size;
     image.Y = frame;
@@ -570,9 +581,10 @@ int main(int argc, char **argv)
 
   printf("Worker prune 0\n");
 
-  dma.config->complete = DONE;
+  #pragma unroll
   for (i = 0; i < NUM_SEG; ++i)
   {
+    dma.config->complete[i] = DONE;
     dma.config->dma_queue_state[i] = TRANSFER_COMPLETED;
   }
 

@@ -272,7 +272,7 @@ static void sci_init_control(dma_buffer_t *dma)
       dma->config[i]->width = width;
       dma->config[i]->height = height;
       dma->config[i]->writer = writer_node;
-      dma->config[i]->complete = ONGOING;
+      dma->config[i]->complete[0] = dma->config[i]->complete[1] = ONGOING;
       dma->config[i]->ack = ONGOING;
       dma->config[i]->initialized = 1;
     }
@@ -407,7 +407,10 @@ int main(int argc, char **argv)
   #pragma unroll
   for (i = 0; i < MAX_NUM_WORKERS; ++i)
   {
-    dma.config[i]->complete = DONE;
+    for (j = 0; j < NUM_SEG; ++j) 
+    {
+      dma.config[i]->complete[j] = DONE;
+    }
     dma.config[i]->dma_queue_state[0] = dma.config[i]->dma_queue_state[1] = TRANSFER_COMPLETED;
   }
 

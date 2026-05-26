@@ -78,7 +78,7 @@ typedef struct
     volatile int height;
     volatile int writer;
 
-    volatile c63_process_state complete;
+    volatile c63_process_state complete[NUM_SEG];
     volatile c63_process_state ack;
 
     volatile int initialized;

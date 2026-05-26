@@ -272,6 +272,7 @@ int main(int argc, char **argv)
   size_t mb_size_uv = mb_count_uv * sizeof(struct macroblock);
 
   int buf = 0;
+  int both_buf_done = 0;
 
   int num_frames = 0;
   while (1) 
@@ -284,7 +285,16 @@ int main(int argc, char **argv)
     {
       if (config[i]->complete != DONE) { all_done = 0; }
     }
-    if (all_done) { break; }
+    if (all_done)
+    { 
+      if (both_buf_done) { break; }
+      else 
+      {
+        both_buf_done = 1;
+        buf ^= 1;
+        continue;
+      }
+    }
 
     cm->curframe->keyframe = writer_ctx.buffer[0][0]->keyframe;
     for (i = 0; i < MAX_NUM_WORKERS; ++i)
