@@ -104,9 +104,9 @@ void destroy_frame(struct frame *f)
   free(f->recons->V);
   free(f->recons);
 
-  // free(f->residuals->Ydct);
-  // free(f->residuals->Udct);
-  // free(f->residuals->Vdct);
+  free(f->residuals->Ydct);
+  free(f->residuals->Udct);
+  free(f->residuals->Vdct);
   free(f->residuals);
 
   free(f->predicted->Y);
@@ -114,9 +114,9 @@ void destroy_frame(struct frame *f)
   free(f->predicted->V);
   free(f->predicted);
 
-  // free(f->mbs[Y_COMPONENT]);
-  // free(f->mbs[U_COMPONENT]);
-  // free(f->mbs[V_COMPONENT]);
+  free(f->mbs[Y_COMPONENT]);
+  free(f->mbs[U_COMPONENT]);
+  free(f->mbs[V_COMPONENT]);
 
   free(f);
 }

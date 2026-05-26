@@ -561,16 +561,26 @@ int main(int argc, char **argv)
 
   printf("worker: Hello World!\n");
 
+  printf("writer prune 1\n");
   dma.config->complete = DONE;
   for (i = 0; i < NUM_SEG; ++i)
   {
+
+    printf("writer prune 2\n"); 
     dma.config->dma_queue_state[i] = TRANSFER_COMPLETED;
   }
+
+  printf("writer prune 3\n");
   while (dma.config->ack != ACKNOWLEDGED);
 
+  printf("writer prune 4\n");
   reader_config->ack = ACKNOWLEDGED;
 
+  printf("writer prune 5\n");
+
   sci_cleanup(&worker_ctx, &dma);
+
+  printf("writer prune 6\n");
   free_c63_enc(cm);
 
   return 0;
