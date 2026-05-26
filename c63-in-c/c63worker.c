@@ -77,6 +77,7 @@ typedef struct
 {
   config_t *config;
   int buf;
+  int done;
 } dma_context_t;
 
 
@@ -395,7 +396,9 @@ static sci_callback_action_t dma_completion_callback(void* arg, sci_dma_queue_t 
 {
   dma_context_t *ctx = (dma_context_t *) arg;
   int buf = ctx->buf;
+  ctx->done = 0;
   ctx->config->dma_queue_state[buf] = TRANSFER_COMPLETED;
+  ctx->done = 1;
   return SCI_CALLBACK_CONTINUE;
 }
 
@@ -443,17 +446,6 @@ static void sci_cleanup(worker_t *worker, dma_buffer_t *dma)
   SCIClose(worker->sd, SCI_NO_FLAGS, &error);
   SCIClose(dma->sd, SCI_NO_FLAGS, &error);
   SCITerminate();
-}
-
-static inline void wait_for_dma_queue_complete(dma_buffer_t *dma)
-{
-  sci_error_t error;
-  int i;
-
-  for (i = 0; i < NUM_SEG; ++i) 
-  {
-    SCIWaitForDMAQueue(dma->dma_queue[i], SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
-  }
 }
 
 
@@ -575,7 +567,10 @@ int main(int argc, char **argv)
 
   printf("worker: Hello World!\n");
 
-  wait_for_dma_queue_complete(&dma);
+  for (i = 0; i < NUM_SEG; ++i)
+  {
+    while (!dma_ctx[i].done);
+  }
 
   dma.config->complete = DONE;
   for (i = 0; i < NUM_SEG; ++i)

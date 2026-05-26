@@ -58,6 +58,7 @@ typedef struct
 {
   config_t *config;
   int buf;
+  int done;
 } dma_context_t;
 
 static uint8_t *buffer;
@@ -177,8 +178,11 @@ static sci_callback_action_t dma_completion_callback(void* arg, sci_dma_queue_t 
   
   config_t *config = ctx->config;
   int buf = ctx->buf;
+  ctx->done = 0;
 
   config->dma_queue_state[buf] = TRANSFER_COMPLETED;
+
+  ctx->done = 1;
 
   return SCI_CALLBACK_CONTINUE;
 }
@@ -274,21 +278,6 @@ static void sci_init_control(dma_buffer_t *dma)
     }
 }
 
-static inline void wait_for_dma_queue_complete(dma_buffer_t *dma)
-{
-  sci_error_t error;
-  int i, j;
-
-  for (i = 0; i < MAX_NUM_WORKERS; ++i)
-  {
-    for (j = 0; j < NUM_SEG; ++j) 
-    {
-      SCIWaitForDMAQueue(dma->dma_queue[i][j], SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
-    }
-  }
-}
-
-
 int main(int argc, char **argv)
 {
   int c;
@@ -343,6 +332,7 @@ int main(int argc, char **argv)
   {
     dma_ctx[i][0].config = dma_ctx[i][1].config = dma.config[i];
     dma_ctx[i][0].buf = 0; dma_ctx[i][1].buf = 1;
+    dma_ctx[i][0].done = 0 = dma_ctx[i][1].done = 0;
 
     connect_remote_segment(&dma, worker_nodes[i], i);
   }
@@ -401,9 +391,17 @@ int main(int argc, char **argv)
     buf ^= 1;
   }
 
-  printf("Server end\n");
+  int j;
+  #pragma unroll
+  for (i = 0; i < MAX_NUM_WORKERS; ++i)
+  {
+    for (j = 0; j < NUM_SEG; ++j) 
+    {
+      while (!dma_ctx[i][j].done);
+    }
+  }
 
-  wait_for_dma_queue_complete(&dma);
+  printf("Server end\n");
 
   // send signal to close workers
   #pragma unroll
