@@ -183,7 +183,6 @@ static inline void wait_for_workers(config_t *config[MAX_NUM_WORKERS], int buf)
   for (i = 0; i < MAX_NUM_WORKERS; ++i)
   {
     while (config[i]->dma_queue_state[buf] != TRANSFER_COMPLETED);
-    config[i]->dma_queue_state[buf] = BUSY;
   }
 }
 
@@ -294,6 +293,11 @@ int main(int argc, char **argv)
         buf ^= 1;
         continue;
       }
+    }
+
+    for (i = 0; i < MAX_NUM_WORKERS; ++i)
+    {
+      config[i]->dma_queue_state[buf] = BUSY;
     }
 
     cm->curframe->keyframe = writer_ctx.buffer[0][0]->keyframe;

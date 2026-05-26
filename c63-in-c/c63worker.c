@@ -532,7 +532,6 @@ int main(int argc, char **argv)
   while (1) 
   {
     while (reader_config->dma_queue_state[buf] != TRANSFER_COMPLETED);
-    reader_config->dma_queue_state[buf] = BUSY;
 
     if (reader_config->complete[buf] == DONE) 
     { 
@@ -544,6 +543,8 @@ int main(int argc, char **argv)
         continue;
       }
     }
+
+    reader_config->dma_queue_state[buf] = BUSY;
 
     uint8_t *frame = worker_ctx.frame_buffer + buf * total_size;
     image.Y = frame;
