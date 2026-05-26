@@ -509,7 +509,6 @@ int main(int argc, char **argv)
 
   int buf = 0;
 
-    printf("worker prune 10\n");
   int dct_count_y = (cm->ypw * cm->yph) / 2;
   int dct_count_u = (cm->upw * cm->uph) / 2;
   int dct_count_v = (cm->vpw * cm->vph) / 2;
@@ -530,10 +529,8 @@ int main(int argc, char **argv)
   
   while (1) 
   {
-    printf("worker prune 1\n");
     while (reader_config->dma_queue_state[buf] != TRANSFER_COMPLETED);
     reader_config->dma_queue_state[buf] = BUSY;
-    printf("worker prune 2\n");
 
     if (reader_config->complete == DONE) { break; }
 
@@ -542,15 +539,10 @@ int main(int argc, char **argv)
     image.U = frame + y_size;
     image.V = frame + uv_size;
 
-    printf("worker prune 3\n");
-
     c63_encode_image(cm, &image);
-
-    printf("worker prune 4\n");
 
     // Send to writer
     wait_for_writer(dma.config, buf);
-    printf("worker prune 5\n");
 
     writer_job_ctx[buf]->keyframe = cm->curframe->keyframe;
     memcpy(writer_job_ctx[buf]->Ydct, cm->curframe->residuals->Ydct + worker_order * dct_count_y, dct_size_y);
@@ -560,11 +552,7 @@ int main(int argc, char **argv)
     memcpy(writer_job_ctx[buf]->mbs_U, cm->curframe->mbs[1] + worker_order * mb_count_uv, mb_size_uv);
     memcpy(writer_job_ctx[buf]->mbs_V, cm->curframe->mbs[2] + worker_order * mb_count_uv, mb_size_uv);
 
-    printf("worker prune 6\n");
-
     send_encoded_data(&dma, &dma_ctx[buf], buf);
-
-    printf("worker prune 7\n");
 
     reader_config->dma_queue_state[buf] = AVAILABLE;
 

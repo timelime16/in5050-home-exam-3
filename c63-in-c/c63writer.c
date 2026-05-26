@@ -256,7 +256,6 @@ int main(int argc, char **argv)
   {
     config[i] = sci_init_control(&writer_ctx, i);
   }
-    printf("writer prune 4\n");
 
   struct c63_common *cm = init_c63_enc(width, height);
   cm->e_ctx.fp = outfile;
@@ -284,9 +283,7 @@ int main(int argc, char **argv)
   int num_frames = 0;
   while (1) 
   {
-    printf("writer prune 1\n");
     wait_for_workers(config, buf);
-    printf("writer prune 2\n");
 
     int all_done = 0;
     #pragma unroll
@@ -296,7 +293,6 @@ int main(int argc, char **argv)
     }
     if (all_done) { break; }
 
-    printf("writer prune 3\n");
     cm->curframe->keyframe = writer_ctx.buffer[0][0]->keyframe;
     for (i = 0; i < MAX_NUM_WORKERS; ++i)
     {
@@ -308,7 +304,6 @@ int main(int argc, char **argv)
         memcpy(cm->curframe->mbs[2]          + i * mb_count_uv, writer_ctx.buffer[i][buf]->mbs_V, mb_size_uv);
     }
 
-    printf("writer prune 4\n");
     // memcpy(cm->curframe->residuals->Ydct, writer_ctx.buffer->Ydct, );
     // memcpy(cm->curframe->residuals->Udct, writer_ctx.buffer->Udct, cm->uph * cm->upw * sizeof(int16_t));
     // memcpy(cm->curframe->residuals->Vdct, writer_ctx.buffer->Vdct, cm->vph * cm->vpw * sizeof(int16_t));
@@ -317,6 +312,7 @@ int main(int argc, char **argv)
     // memcpy(cm->curframe->mbs[2], writer_ctx.buffer->mbs_V, (cm->mb_cols/2) * (cm->mb_rows/2) * sizeof(struct macroblock));
 
     write_frame(cm);
+
     printf("Frame %d written\n", num_frames++);
 
     for (i = 0; i < MAX_NUM_WORKERS; ++i)
