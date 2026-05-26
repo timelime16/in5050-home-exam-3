@@ -413,7 +413,7 @@ static void send_encoded_data(dma_buffer_t *dma, dma_context_t *dma_ctx, int buf
 
 static inline void wait_for_writer(config_t *config, int buf)
 {
-    while (config->dma_queue_state[buf] == BUSY);
+    while (config->dma_queue_state[buf] != AVAILABLE);
 }
 
 static void sci_cleanup(worker_t *worker, dma_buffer_t *dma)
