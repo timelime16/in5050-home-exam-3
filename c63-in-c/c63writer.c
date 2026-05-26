@@ -182,7 +182,7 @@ static inline void wait_for_workers(config_t *config[MAX_NUM_WORKERS], int buf)
   #pragma unroll
   for (i = 0; i < MAX_NUM_WORKERS; ++i)
   {
-    while (config[i]->dma_queue_state[buf] != TRANSFER_COMPLETED);
+    while (config[i]->dma_queue_state[buf] != TRANSFER_COMPLETED) { printf("here"); }
   }
 }
 
@@ -310,13 +310,6 @@ int main(int argc, char **argv)
         memcpy(cm->curframe->mbs[1]          + i * mb_count_uv, writer_ctx.buffer[i][buf]->mbs_U, mb_size_uv);
         memcpy(cm->curframe->mbs[2]          + i * mb_count_uv, writer_ctx.buffer[i][buf]->mbs_V, mb_size_uv);
     }
-
-    // memcpy(cm->curframe->residuals->Ydct, writer_ctx.buffer->Ydct, );
-    // memcpy(cm->curframe->residuals->Udct, writer_ctx.buffer->Udct, cm->uph * cm->upw * sizeof(int16_t));
-    // memcpy(cm->curframe->residuals->Vdct, writer_ctx.buffer->Vdct, cm->vph * cm->vpw * sizeof(int16_t));
-    // memcpy(cm->curframe->mbs[0], writer_ctx.buffer->mbs_Y, cm->mb_cols * cm->mb_rows * sizeof(struct macroblock));
-    // memcpy(cm->curframe->mbs[1], writer_ctx.buffer->mbs_U, (cm->mb_cols/2) * (cm->mb_rows/2) * sizeof(struct macroblock));
-    // memcpy(cm->curframe->mbs[2], writer_ctx.buffer->mbs_V, (cm->mb_cols/2) * (cm->mb_rows/2) * sizeof(struct macroblock));
 
     write_frame(cm);
 
