@@ -245,14 +245,11 @@ int main(int argc, char **argv)
     exit(EXIT_FAILURE);
   }
 
-
-  printf("writer prune 1\n");
   /* Initialize the SISCI library */
   sci_init(&writer_ctx);
-    printf("writer prune 2\n");
 
   sci_init_writer(&writer_ctx);
-  printf("writer prune 3\n");
+  
   int i;
   #pragma unroll
   for (i = 0; i < MAX_NUM_WORKERS; ++i)
