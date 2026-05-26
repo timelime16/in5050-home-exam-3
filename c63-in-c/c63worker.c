@@ -507,8 +507,6 @@ int main(int argc, char **argv)
   // image.U = (uint8_t *) malloc(uv_size * sizeof(uint8_t));
   // image.V = (uint8_t *) malloc(uv_size * sizeof(uint8_t));
 
-  int buf = 0;
-
   int dct_count_y = (cm->ypw * cm->yph) / 2;
   int dct_count_u = (cm->upw * cm->uph) / 2;
   int dct_count_v = (cm->vpw * cm->vph) / 2;
@@ -528,10 +526,11 @@ int main(int argc, char **argv)
   }
 
   int both_buf_done = 0;
+  int buf = 0;
   
   while (1) 
   {
-    while (reader_config->dma_queue_state[buf] != TRANSFER_COMPLETED);
+    while (reader_config->dma_queue_state[buf] != TRANSFER_COMPLETED) { printf("here\n"); };
 
     if (reader_config->complete[buf] == DONE) 
     { 
