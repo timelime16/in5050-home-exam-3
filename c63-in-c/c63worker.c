@@ -452,7 +452,7 @@ static inline void wait_for_dma_queue_complete(dma_buffer_t *dma)
 
   for (i = 0; i < NUM_SEG; ++i) 
   {
-    SCIWaitForDMAQueue(dma->dma_queue[i][j], SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
+    SCIWaitForDMAQueue(dma->dma_queue[i], SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
   }
 }
 
@@ -574,7 +574,7 @@ int main(int argc, char **argv)
   }
 
   printf("worker: Hello World!\n");
-  
+
   wait_for_dma_queue_complete(&dma);
 
   dma.config->complete = DONE;
