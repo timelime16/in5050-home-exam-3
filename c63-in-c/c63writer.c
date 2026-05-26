@@ -195,13 +195,6 @@ static void sci_cleanup(writer_t *writer)
   SCIUnmapSegment(writer->writer_map, SCI_NO_FLAGS, &error);
   SCIRemoveSegment(writer->writer_job_segment, SCI_NO_FLAGS, &error);
 
-  #pragma unroll
-  for (i = 0; i < MAX_NUM_WORKERS; ++i)
-  {
-    SCIUnmapSegment(worker_remote_control_map[i], SCI_NO_FLAGS, & error);
-    SCIDisconnectSegment(worker_remote_control_seg[i], SCI_NO_FLAGS, &error);
-  }
-
   SCIClose(writer->sd, SCI_NO_FLAGS, &error);
   SCITerminate();
 }
@@ -328,6 +321,13 @@ int main(int argc, char **argv)
   for (i = 0; i < MAX_NUM_WORKERS; ++i)
   {
     config[i]->ack = ACKNOWLEDGED;
+  }
+  sci_error_t error;
+  #pragma unroll
+  for (i = 0; i < MAX_NUM_WORKERS; ++i)
+  {
+    SCIUnmapSegment(worker_remote_control_map[i], SCI_NO_FLAGS, & error);
+    SCIDisconnectSegment(worker_remote_control_seg[i], SCI_NO_FLAGS, &error);
   }
 
   fclose(outfile);

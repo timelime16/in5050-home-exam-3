@@ -426,15 +426,10 @@ static void sci_cleanup(worker_t *worker, dma_buffer_t *dma)
   SCIUnmapSegment(worker->frame_map, SCI_NO_FLAGS, &error);
   SCIRemoveSegment(worker->frame_segment, SCI_NO_FLAGS, &error);
 
-  SCIUnmapSegment(reader_remote_control_map, SCI_NO_FLAGS, &error);
-  SCIDisconnectSegment(reader_remote_control_seg, SCI_NO_FLAGS, &error);
-
   SCIUnmapSegment(dma->segment_map, SCI_NO_FLAGS, &error);
   SCIRemoveSegment(dma->local_segment, SCI_NO_FLAGS, &error);
   SCIUnmapSegment(dma->control_map, SCI_NO_FLAGS, &error);
   SCIRemoveSegment(dma->control_segment, SCI_NO_FLAGS, &error);
-  SCIUnmapSegment(writer_remote_map, SCI_NO_FLAGS, &error);
-  SCIDisconnectSegment(writer_remote_seg, SCI_NO_FLAGS, &error);
 
   int i;
   #pragma unroll
@@ -587,7 +582,13 @@ int main(int argc, char **argv)
 
   printf("Worker prune 2\n");
 
+  sci_error_t error;
+  SCIUnmapSegment(writer_remote_map, SCI_NO_FLAGS, &error);
+  SCIDisconnectSegment(writer_remote_seg, SCI_NO_FLAGS, &error);
+
   reader_config->ack = ACKNOWLEDGED;
+  SCIUnmapSegment(reader_remote_control_map, SCI_NO_FLAGS, &error);
+  SCIDisconnectSegment(reader_remote_control_seg, SCI_NO_FLAGS, &error);
 
   printf("Worker prune 3\n");
 
