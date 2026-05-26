@@ -403,6 +403,8 @@ int main(int argc, char **argv)
 
   printf("Server end\n");
 
+  wait_for_dma_queue_complete(&dma);
+
   // send signal to close workers
   #pragma unroll
   for (i = 0; i < MAX_NUM_WORKERS; ++i)
@@ -411,10 +413,7 @@ int main(int argc, char **argv)
     dma.config[i]->dma_queue_state[0] = dma.config[i]->dma_queue_state[1] = TRANSFER_COMPLETED;
   }
 
-
   printf("Server send signal\n");
-
-  wait_for_dma_queue_complete(&dma);
 
   for (i = 0; i < MAX_NUM_WORKERS; ++i) 
   {
