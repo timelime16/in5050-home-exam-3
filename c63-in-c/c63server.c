@@ -366,12 +366,13 @@ int main(int argc, char **argv)
   
   while (1)
   {
+    wait_for_workers(&dma, buf);
+    
     image = read_yuv(infile, &dma, width, height, buf);
     if (!image) { break; }
 
     printf("Encoding frame %d, ", numframes);
 
-    wait_for_workers(&dma, buf);
     #pragma unroll
     for (i = 0; i < MAX_NUM_WORKERS; ++i)
     {
