@@ -548,7 +548,7 @@ int main(int argc, char **argv)
     uint8_t *frame = worker_ctx.frame_buffer + buf * total_size;
     image.Y = frame;
     image.U = frame + y_size;
-    image.V = frame + uv_size;
+    image.V = frame + y_size + uv_size;
 
     c63_encode_image(cm, &image);
 
