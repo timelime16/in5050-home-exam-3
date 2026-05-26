@@ -403,6 +403,14 @@ int main(int argc, char **argv)
 
   printf("Server end\n");
 
+  for (i = 0; i < MAX_NUM_WORKERS; ++i)
+  {
+    for (j = 0; j < NUM_SEG; ++j)
+    {
+      while (dma.config[i]->dma_queue_state[j] != AVAILABLE);
+    }
+  }
+
   // send signal to close workers
   #pragma unroll
   for (i = 0; i < MAX_NUM_WORKERS; ++i)

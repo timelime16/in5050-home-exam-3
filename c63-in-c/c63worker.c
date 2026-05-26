@@ -530,7 +530,7 @@ int main(int argc, char **argv)
   
   while (1) 
   {
-    while (reader_config->dma_queue_state[buf] != TRANSFER_COMPLETED) { printf("here\n"); };
+    while (reader_config->dma_queue_state[buf] != TRANSFER_COMPLETED);
 
     if (reader_config->complete[buf] == DONE) 
     { 
