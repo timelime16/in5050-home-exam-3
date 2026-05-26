@@ -48,7 +48,7 @@ typedef enum
     TRANSFERRING,
     TRANSFER_COMPLETED,
     BUSY,
-} c63_state;
+} c63_dma_queue_state;
 
 typedef enum 
 {
@@ -72,7 +72,7 @@ typedef struct {
 // PIO sync
 typedef struct 
 {
-    volatile c63_state dma_queue_state[NUM_SEG];
+    volatile c63_dma_queue_state dma_queue_state[NUM_SEG];
 
     volatile int width;
     volatile int height;

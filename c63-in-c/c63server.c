@@ -386,6 +386,8 @@ int main(int argc, char **argv)
     buf ^= 1;
   }
 
+  printf("Server end\n");
+
   // send signal to close workers
   #pragma unroll
   for (i = 0; i < MAX_NUM_WORKERS; ++i)
@@ -393,6 +395,9 @@ int main(int argc, char **argv)
     dma.config[i]->complete = DONE;
     dma.config[i]->dma_queue_state[0] = dma.config[i]->dma_queue_state[1] = TRANSFER_COMPLETED;
   }
+
+
+  printf("Server send signal\n");
 
   for (i = 0; i < MAX_NUM_WORKERS; ++i) 
   {
