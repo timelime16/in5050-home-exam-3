@@ -285,11 +285,11 @@ int main(int argc, char **argv)
   {
     wait_for_workers(config, buf);
 
-    int all_done = 0;
+    int all_done = 1;
     #pragma unroll
     for (i = 0; i < MAX_NUM_WORKERS; ++i)
     {
-      if (config[i]->complete == DONE) { all_done = 1; }
+      if (config[i]->complete != DONE) { all_done = 0; }
     }
     if (all_done) { break; }
 
