@@ -291,8 +291,8 @@ int main(int argc, char **argv)
     wait_for_workers(config, buf);
     printf("writer prune 2\n");
 
+    int all_done = false;
     #pragma unroll
-    bool all_done = false;
     for (i = 0; i < MAX_NUM_WORKERS; ++i)
     {
       if (config[i]->complete == DONE) { all_done = true; }
