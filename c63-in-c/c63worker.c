@@ -501,6 +501,7 @@ int main(int argc, char **argv)
   {
     dma_ctx[i].config = dma.config;
     dma_ctx[i].buf = i;
+    dma_ctx[i].done = 0;
   }
 
   connect_remote_segment(&dma);

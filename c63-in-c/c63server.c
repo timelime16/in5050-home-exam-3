@@ -332,7 +332,7 @@ int main(int argc, char **argv)
   {
     dma_ctx[i][0].config = dma_ctx[i][1].config = dma.config[i];
     dma_ctx[i][0].buf = 0; dma_ctx[i][1].buf = 1;
-    dma_ctx[i][0].done = 0 = dma_ctx[i][1].done = 0;
+    dma_ctx[i][0].done = dma_ctx[i][1].done = 0;
 
     connect_remote_segment(&dma, worker_nodes[i], i);
   }
