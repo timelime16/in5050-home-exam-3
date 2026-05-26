@@ -319,6 +319,8 @@ int main(int argc, char **argv)
     {
       config[i]->dma_queue_state[buf] = AVAILABLE;
     }
+
+    buf ^= 1;
   }
 
   printf("writer end loop\n");
