@@ -554,6 +554,8 @@ int main(int argc, char **argv)
 
     send_encoded_data(&dma, &dma_ctx[buf], buf);
 
+    printf("Worker %d sending encoded data to writer\n", worker_order);
+
     reader_config->dma_queue_state[buf] = AVAILABLE;
 
     buf ^= 1;
