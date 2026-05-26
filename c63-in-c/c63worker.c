@@ -571,11 +571,11 @@ int main(int argc, char **argv)
 
   while (dma.config->ack != ACKNOWLEDGED);
 
-  reader_config->ack = ACKNOWLEDGED;
-
   sci_cleanup(&worker_ctx, &dma);
 
   free_c63_enc(cm);
+
+  reader_config->ack = ACKNOWLEDGED;
 
   return 0;
 
