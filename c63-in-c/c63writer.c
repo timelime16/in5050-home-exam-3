@@ -289,10 +289,12 @@ int main(int argc, char **argv)
     printf("writer prune 2\n");
 
     #pragma unroll
+    bool all_done = false;
     for (i = 0; i < MAX_NUM_WORKERS; ++i)
     {
-      if (config[i]->complete == DONE) { break; }
+      if (config[i]->complete == DONE) { all_done = true; }
     }
+    if (all_done) { break; }
 
     printf("writer prune 3\n");
     cm->curframe->keyframe = writer_ctx.buffer[0][0]->keyframe;
