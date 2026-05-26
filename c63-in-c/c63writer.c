@@ -291,11 +291,11 @@ int main(int argc, char **argv)
     wait_for_workers(config, buf);
     printf("writer prune 2\n");
 
-    int all_done = false;
+    int all_done = 0;
     #pragma unroll
     for (i = 0; i < MAX_NUM_WORKERS; ++i)
     {
-      if (config[i]->complete == DONE) { all_done = true; }
+      if (config[i]->complete == DONE) { all_done = 1; }
     }
     if (all_done) { break; }
 
