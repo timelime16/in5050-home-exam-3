@@ -573,18 +573,30 @@ int main(int argc, char **argv)
     while (!dma_ctx[i].done);
   }
 
+  printf("Worker prune 0\n");
+
   dma.config->complete = DONE;
   for (i = 0; i < NUM_SEG; ++i)
   {
     dma.config->dma_queue_state[i] = TRANSFER_COMPLETED;
   }
 
+  printf("Worker prune 1\n");
+
   while (dma.config->ack != ACKNOWLEDGED);
+
+  printf("Worker prune 2\n");
 
   reader_config->ack = ACKNOWLEDGED;
 
+  printf("Worker prune 3\n");
+
   free_c63_enc(cm);
+
+  printf("Worker prune 4\n");
   sci_cleanup(&worker_ctx, &dma);
+
+  printf("Worker prune 5\n");
 
   return 0;
 
