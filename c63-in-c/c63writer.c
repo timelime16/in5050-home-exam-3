@@ -246,17 +246,20 @@ int main(int argc, char **argv)
   }
 
 
+  printf("writer prune 1\n");
   /* Initialize the SISCI library */
   sci_init(&writer_ctx);
+    printf("writer prune 2\n");
 
   sci_init_writer(&writer_ctx);
-
+  printf("writer prune 3\n");
   int i;
   #pragma unroll
   for (i = 0; i < MAX_NUM_WORKERS; ++i)
   {
     config[i] = sci_init_control(&writer_ctx, i);
   }
+    printf("writer prune 4\n");
 
   struct c63_common *cm = init_c63_enc(width, height);
   cm->e_ctx.fp = outfile;
