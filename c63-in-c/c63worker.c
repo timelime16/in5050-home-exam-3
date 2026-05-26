@@ -579,6 +579,11 @@ int main(int argc, char **argv)
     while (!dma_ctx[i].done);
   }
 
+  for (i = 0; i < NUM_SEG; ++i)
+  {
+    while (dma.config->dma_queue_state[i] != AVAILABLE);
+  }
+
   printf("Worker prune 0\n");
 
   #pragma unroll
