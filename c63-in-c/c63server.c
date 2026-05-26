@@ -274,6 +274,20 @@ static void sci_init_control(dma_buffer_t *dma)
     }
 }
 
+static inline void wait_for_dma_queue_complete(dma_buffer_t *dma)
+{
+  sci_error_t error;
+  int i, j;
+
+  for (i = 0; i < MAX_NUM_WORKERS; ++i)
+  {
+    for (j = 0; j < NUM_SEG; ++j) 
+    {
+      SCIWaitForDMAQueue(dma->dma_queue[i][j], SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
+    }
+  }
+}
+
 
 int main(int argc, char **argv)
 {
@@ -367,7 +381,7 @@ int main(int argc, char **argv)
   while (1)
   {
     wait_for_workers(&dma, buf);
-    
+
     image = read_yuv(infile, &dma, width, height, buf);
     if (!image) { break; }
 
@@ -399,6 +413,8 @@ int main(int argc, char **argv)
 
 
   printf("Server send signal\n");
+
+  wait_for_dma_queue_complete(&dma);
 
   for (i = 0; i < MAX_NUM_WORKERS; ++i) 
   {
