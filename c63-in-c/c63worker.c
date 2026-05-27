@@ -387,7 +387,7 @@ static void connect_remote_segment(dma_buffer_t *dma)
 static sci_callback_action_t dma_completion_callback(void* arg, sci_dma_queue_t dma_queue, sci_error_t status)
 {
   dma_context_t *ctx = (dma_context_t *) arg;
-  ctx->config->dma_queue_state = TRANSFER_COMPLETED;
+  ctx->config->dma_queue_state[0] = TRANSFER_COMPLETED;
   ctx->done = 1;
   return SCI_CALLBACK_CONTINUE;
 }
@@ -396,16 +396,16 @@ static void send_encoded_data(dma_buffer_t *dma, dma_context_t *dma_ctx)
 {
     sci_error_t error;
 
-    dma->config->dma_queue_state = TRANSFERRING;
+    dma->config->dma_queue_state[0] = TRANSFERRING;
     size_t remote_offset = worker_order * sizeof(writer_job_t);
-    SCIStartDmaTransfer(dma->dma_queue[buf], dma->local_segment, writer_remote_seg, 0, sizeof(writer_job_t), remote_offset,
+    SCIStartDmaTransfer(dma->dma_queue, dma->local_segment, writer_remote_seg, 0, sizeof(writer_job_t), remote_offset,
         dma_completion_callback, dma_ctx, SCI_FLAG_USE_CALLBACK, &error);
     sci_check_and_fail(error, "SCIStartDMATransfer", "worker");
 }
 
 static inline void wait_for_writer(config_t *config)
 {
-    while (config->dma_queue_state != AVAILABLE);
+    while (config->dma_queue_state[0] != AVAILABLE);
 }
 
 static void sci_cleanup(worker_t *worker, dma_buffer_t *dma)
@@ -493,6 +493,7 @@ int main(int argc, char **argv)
   size_t mb_size_y = mb_count_y * sizeof(struct macroblock);
   size_t mb_size_uv = mb_count_uv * sizeof(struct macroblock);
 
+  int i;
   #pragma unroll
   for (i = 0; i < NUM_SEG; ++i)
   {
@@ -550,12 +551,12 @@ int main(int argc, char **argv)
 
   while (!dma_ctx.done);
   
-  while (dma.config->dma_queue_state != AVAILABLE);
+  while (dma.config->dma_queue_state[0] != AVAILABLE);
 
   printf("Worker prune 0\n");
 
-  dma.config->dma_queue_state = TRANSFER_COMPLETED;
-  dma.config->complete = DONE;
+  dma.config->dma_queue_state[0] = TRANSFER_COMPLETED;
+  dma.config->complete[0] = DONE;
 
 
   printf("Worker prune 1\n");
