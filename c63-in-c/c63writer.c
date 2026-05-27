@@ -151,7 +151,7 @@ static config_t *sci_init_control(writer_t *writer, int i)
 
 static void sci_init_writer(writer_t *writer)
 {
-    int i, j;
+    int i;
     sci_error_t error;
 
     SCICreateSegment(writer->sd, &writer->writer_job_segment, GET_SEGMENTID(WRITER), 2 * sizeof(writer_job_t), SCI_NO_CALLBACK,
@@ -166,7 +166,7 @@ static void sci_init_writer(writer_t *writer)
 
     for (i = 0; i < MAX_NUM_WORKERS; ++i)
     {
-      size_t remote_offset = (i*NUM_SEG+j) * sizeof(writer_job_t);
+      size_t remote_offset =  i * sizeof(writer_job_t);
       writer->buffer[i] = (writer_job_t *) SCIMapLocalSegment(writer->writer_job_segment, &writer->writer_map, remote_offset, 
         sizeof(writer_job_t), NULL, SCI_NO_FLAGS, &error);
       sci_check_and_fail(error, "SCIMapLocalSegment", "writer");
