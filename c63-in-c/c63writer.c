@@ -179,7 +179,7 @@ static inline void wait_for_workers(config_t *config[MAX_NUM_WORKERS])
   #pragma unroll
   for (i = 0; i < MAX_NUM_WORKERS; ++i)
   {
-    while (config[i]->dma_queue_state != TRANSFER_COMPLETED);
+    while (config[i]->dma_queue_state[0] != TRANSFER_COMPLETED);
   }
 }
 
@@ -278,7 +278,7 @@ int main(int argc, char **argv)
 
     for (i = 0; i < MAX_NUM_WORKERS; ++i)
     {
-      config[i]->dma_queue_state = BUSY;
+      config[i]->dma_queue_state[0] = BUSY;
     }
 
     cm->curframe->keyframe = writer_ctx.buffer[0]->keyframe;
@@ -298,10 +298,10 @@ int main(int argc, char **argv)
 
     for (i = 0; i < MAX_NUM_WORKERS; ++i)
     {
-      config[i]->dma_queue_state = AVAILABLE;
+      config[i]->dma_queue_state[0] = AVAILABLE;
     }
 
-    if (config[0]->complete == DONE || config[1]->complete == DONE) { break; }
+    if (config[0]->complete[0] == DONE || config[1]->complete[0] == DONE) { break; }
 
   }
 
