@@ -420,7 +420,7 @@ static void sci_cleanup(worker_t *worker, dma_buffer_t *dma)
   SCIUnmapSegment(dma->control_map, SCI_NO_FLAGS, &error);
   SCIRemoveSegment(dma->control_segment, SCI_NO_FLAGS, &error);
 
-  SCIRemoveDMAQueue(dma->dma_queue[i], SCI_NO_FLAGS, &error);
+  SCIRemoveDMAQueue(dma->dma_queue, SCI_NO_FLAGS, &error);
 
   SCIClose(worker->sd, SCI_NO_FLAGS, &error);
   SCIClose(dma->sd, SCI_NO_FLAGS, &error);
