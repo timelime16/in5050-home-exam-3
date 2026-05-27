@@ -58,6 +58,7 @@ typedef struct
 {
   config_t *config;
   int buf;
+  int done;
 } dma_context_t;
 
 static uint8_t *buffer;
@@ -177,8 +178,11 @@ static sci_callback_action_t dma_completion_callback(void* arg, sci_dma_queue_t 
   
   config_t *config = ctx->config;
   int buf = ctx->buf;
+  ctx->done = 0;
 
   config->dma_queue_state[buf] = TRANSFER_COMPLETED;
+
+  ctx->done = 1;
 
   return SCI_CALLBACK_CONTINUE;
 }
@@ -328,6 +332,7 @@ int main(int argc, char **argv)
   {
     dma_ctx[i][0].config = dma_ctx[i][1].config = dma.config[i];
     dma_ctx[i][0].buf = 0; dma_ctx[i][1].buf = 1;
+    dma_ctx[i][0].done = dma_ctx[i][1].done = 0;
 
     connect_remote_segment(&dma, worker_nodes[i], i);
   }
@@ -387,6 +392,14 @@ int main(int argc, char **argv)
   }
 
   int j;
+  #pragma unroll
+  for (i = 0; i < MAX_NUM_WORKERS; ++i)
+  {
+    for (j = 0; j < NUM_SEG; ++j) 
+    {
+      while (!dma_ctx[i][j].done);
+    }
+  }
 
   printf("Server end\n");
 
