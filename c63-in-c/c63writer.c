@@ -282,7 +282,7 @@ int main(int argc, char **argv)
   {
     wait_for_workers(config, buf);
 
-    if (config[i]->complete == DONE) { break; }
+    if (config[i]->complete[buf] == DONE) { break; }
 
     for (i = 0; i < MAX_NUM_WORKERS; ++i)
     {
