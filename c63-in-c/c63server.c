@@ -426,14 +426,7 @@ int main(int argc, char **argv)
 
   for (i = 0; i < MAX_NUM_WORKERS; ++i) 
   {
-    while (dma.config[i]->ack != ACKNOWLEDGED)
-    {
-      for (j = 0; j < NUM_SEG; ++j) 
-      {
-        dma.config[i]->complete[j] = DONE;
-      }
-      dma.config[i]->dma_queue_state[i] = TRANSFER_COMPLETED;
-    }
+    while (dma.config[i]->ack != ACKNOWLEDGED);
   }
 
   fclose(infile);

@@ -584,15 +584,7 @@ int main(int argc, char **argv)
 
   printf("Worker prune 1\n");
 
-  while (dma.config->ack != ACKNOWLEDGED) 
-  {
-    #pragma unroll
-    for (i = 0; i < NUM_SEG; ++i)
-    {
-      dma.config->complete[i] = DONE;
-      dma.config->dma_queue_state[i] = TRANSFER_COMPLETED;
-    }
-  }
+  while (dma.config->ack != ACKNOWLEDGED);
 
   printf("Worker prune 2\n");
 
