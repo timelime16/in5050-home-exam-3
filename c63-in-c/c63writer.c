@@ -182,7 +182,7 @@ static inline void wait_for_workers(config_t *config[MAX_NUM_WORKERS], int buf)
   #pragma unroll
   for (i = 0; i < MAX_NUM_WORKERS; ++i)
   {
-    while (config[i]->dma_queue_state[buf] != TRANSFER_COMPLETED) { printf("here\n"); }
+    while (config[i]->dma_queue_state[buf] != TRANSFER_COMPLETED);
   }
 }
 

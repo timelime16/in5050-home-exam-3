@@ -503,10 +503,6 @@ int main(int argc, char **argv)
 
   struct c63_common *cm = init_c63_enc(width, height);
 
-  // image.Y = (uint8_t *) malloc(y_size * sizeof(uint8_t));
-  // image.U = (uint8_t *) malloc(uv_size * sizeof(uint8_t));
-  // image.V = (uint8_t *) malloc(uv_size * sizeof(uint8_t));
-
   int dct_count_y = (cm->ypw * cm->yph) / 2;
   int dct_count_u = (cm->upw * cm->uph) / 2;
   int dct_count_v = (cm->vpw * cm->vph) / 2;
