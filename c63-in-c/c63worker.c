@@ -396,7 +396,6 @@ static sci_callback_action_t dma_completion_callback(void* arg, sci_dma_queue_t 
 {
   dma_context_t *ctx = (dma_context_t *) arg;
   int buf = ctx->buf;
-  ctx->done = 0;
   ctx->config->dma_queue_state[buf] = TRANSFER_COMPLETED;
   ctx->done = 1;
   return SCI_CALLBACK_CONTINUE;
