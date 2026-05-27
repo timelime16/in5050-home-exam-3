@@ -179,13 +179,20 @@ static void sci_init_writer(writer_t *writer)
 static inline void wait_for_workers(config_t *config[MAX_NUM_WORKERS], int buf) 
 {
   int i;
+  int done = 0;
   #pragma unroll
   for (i = 0; i < MAX_NUM_WORKERS; ++i)
   {
     while (config[i]->dma_queue_state[buf] != TRANSFER_COMPLETED) 
     {
-      if (config[i]->complete[buf] == DONE) { break; }
+      if (config[i]->complete[buf] == DONE)
+      {  
+        done = 1;
+        break;
+      }
     }
+
+    if (done) { break; }
   }
 }
 
