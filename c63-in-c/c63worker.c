@@ -281,7 +281,7 @@ static void sci_init_dma_ctx(dma_buffer_t *dma)
   SCISetSegmentAvailable(dma->local_segment, ADAPTER_NO, SCI_NO_FLAGS, &error);
   sci_check_and_fail(error, "SCISetSegmentAvailable", "worker");
 
-  writer_job_ctx = (writer_job_t *) SCIMapLocalSegment(dma->local_segment, &dma->segment_map, sizeof(writer_job_t), 
+  writer_job_ctx = (writer_job_t *) SCIMapLocalSegment(dma->local_segment, &dma->segment_map, 0, 
     sizeof(writer_job_t), NULL, SCI_NO_FLAGS, &error);
   sci_check_and_fail(error, "SCIMapLocalSegment", "worker");
 
