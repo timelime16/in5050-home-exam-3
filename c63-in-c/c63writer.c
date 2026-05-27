@@ -277,6 +277,8 @@ int main(int argc, char **argv)
   int num_frames = 0;
   while (1) 
   {
+    if (config[i]->complete[buf] == DONE) { break; }
+
     wait_for_workers(config, buf);
 
     if (config[i]->complete[buf] == DONE) { break; }
@@ -305,6 +307,8 @@ int main(int argc, char **argv)
     {
       config[i]->dma_queue_state[buf] = AVAILABLE;
     }
+
+    if (config[i]->complete[buf] == DONE) { break; }
 
     buf ^= 1;
   }
