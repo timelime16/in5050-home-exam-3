@@ -27,6 +27,7 @@
 #define MAX_MB_ROWS  ((MAX_YPH / 8) / 2)
 
 #define MAX_RETRY 100
+#define END_PROG 1000
 
 typedef enum 
 {

@@ -187,7 +187,7 @@ static inline void wait_for_workers(config_t *config[MAX_NUM_WORKERS], int buf)
   {
     while (config[i]->dma_queue_state[buf] != TRANSFER_COMPLETED)
     {
-      if (counter++ == MAX_RETRY) 
+      if (counter++ == END_PROG) 
       { 
         finish_prog = 1;
         break; 
