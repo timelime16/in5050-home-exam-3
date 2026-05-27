@@ -41,7 +41,7 @@ static sci_map_t writer_remote_map;
 static sci_map_t reader_remote_control_map;
 
 
-static writer_job_t *writer_job_ctx[NUM_SEG];
+static writer_job_t *writer_job_ctx;
 
 typedef struct
 {
@@ -61,7 +61,7 @@ typedef struct dma_buffer
     sci_desc_t sd;
 
     sci_local_segment_t local_segment;
-    sci_dma_queue_t dma_queue[NUM_SEG];
+    sci_dma_queue_t dma_queue;
 
     sci_map_t segment_map;
 
@@ -76,7 +76,6 @@ typedef struct dma_buffer
 typedef struct
 {
   config_t *config;
-  int buf;
   int done;
 } dma_context_t;
 
@@ -267,16 +266,12 @@ static void sci_init_dma_ctx(dma_buffer_t *dma)
   SCIOpen(&dma->sd, SCI_NO_FLAGS, &error);
   sci_check_and_fail(error, "SCIOpen", "worker");
 
-  #pragma unroll
-  for (i = 0; i < NUM_SEG; ++i)
-  {
-    SCICreateDMAQueue(dma->sd, &dma->dma_queue[i], ADAPTER_NO, 1, SCI_NO_FLAGS, &error);
-    sci_check_and_fail(error, "SCICreateDMAQueue", "worker");
-  }
+  SCICreateDMAQueue(dma->sd, &dma->dma_queue, ADAPTER_NO, 1, SCI_NO_FLAGS, &error);
+  sci_check_and_fail(error, "SCICreateDMAQueue", "worker");
 
   // Segment
   c63_segment worker_seg = WORKER_ENCODED + worker_order;
-  SCICreateSegment(dma->sd, &dma->local_segment, GET_SEGMENTID(worker_seg), 2 * sizeof(writer_job_t), SCI_NO_CALLBACK,
+  SCICreateSegment(dma->sd, &dma->local_segment, GET_SEGMENTID(worker_seg), sizeof(writer_job_t), SCI_NO_CALLBACK,
     NULL, SCI_NO_FLAGS, &error);
   sci_check_and_fail(error, "SCICreateSegment", "worker dma ctx");
 
@@ -286,12 +281,9 @@ static void sci_init_dma_ctx(dma_buffer_t *dma)
   SCISetSegmentAvailable(dma->local_segment, ADAPTER_NO, SCI_NO_FLAGS, &error);
   sci_check_and_fail(error, "SCISetSegmentAvailable", "worker");
 
-  for (i = 0; i < NUM_SEG; ++i)
-  {
-    writer_job_ctx[i] = (writer_job_t *) SCIMapLocalSegment(dma->local_segment, &dma->segment_map, i * sizeof(writer_job_t), 
-      sizeof(writer_job_t), NULL, SCI_NO_FLAGS, &error);
-    sci_check_and_fail(error, "SCIMapLocalSegment", "worker");
-  }
+  writer_job_ctx = (writer_job_t *) SCIMapLocalSegment(dma->local_segment, &dma->segment_map, sizeof(writer_job_t), 
+    sizeof(writer_job_t), NULL, SCI_NO_FLAGS, &error);
+  sci_check_and_fail(error, "SCIMapLocalSegment", "worker");
 
   // Control
   c63_segment ctrl_seg = WORKER_WRITER_CTRL + worker_order;
@@ -386,7 +378,7 @@ static void connect_remote_segment(dma_buffer_t *dma)
           SCI_NO_ARG, SCI_INFINITE_TIMEOUT, SCI_NO_FLAGS, &error);
     } while (error != SCI_ERR_OK);
 
-    SCIMapRemoteSegment(writer_remote_seg, &writer_remote_map, 0, 4 * sizeof(writer_job_t), NULL, SCI_NO_FLAGS, &error);
+    SCIMapRemoteSegment(writer_remote_seg, &writer_remote_map, 0, 2 * sizeof(writer_job_t), NULL, SCI_NO_FLAGS, &error);
     sci_check_and_fail(error, "SCIMapRemoteSegment", "server");
 
     fprintf(stderr, "connection done! (worker to writer)\n");
@@ -395,27 +387,25 @@ static void connect_remote_segment(dma_buffer_t *dma)
 static sci_callback_action_t dma_completion_callback(void* arg, sci_dma_queue_t dma_queue, sci_error_t status)
 {
   dma_context_t *ctx = (dma_context_t *) arg;
-  int buf = ctx->buf;
-  ctx->config->dma_queue_state[buf] = TRANSFER_COMPLETED;
+  ctx->config->dma_queue_state = TRANSFER_COMPLETED;
   ctx->done = 1;
   return SCI_CALLBACK_CONTINUE;
 }
 
-static void send_encoded_data(dma_buffer_t *dma, dma_context_t *dma_ctx, int buf)
+static void send_encoded_data(dma_buffer_t *dma, dma_context_t *dma_ctx)
 {
     sci_error_t error;
 
-    dma->config->dma_queue_state[buf] = TRANSFERRING;
-    size_t local_offset = buf * sizeof(writer_job_t);
-    size_t remote_offset = (buf + worker_order * NUM_SEG) * sizeof(writer_job_t);
-    SCIStartDmaTransfer(dma->dma_queue[buf], dma->local_segment, writer_remote_seg, local_offset, sizeof(writer_job_t), remote_offset,
+    dma->config->dma_queue_state = TRANSFERRING;
+    size_t remote_offset = worker_order * sizeof(writer_job_t);
+    SCIStartDmaTransfer(dma->dma_queue[buf], dma->local_segment, writer_remote_seg, 0, sizeof(writer_job_t), remote_offset,
         dma_completion_callback, dma_ctx, SCI_FLAG_USE_CALLBACK, &error);
     sci_check_and_fail(error, "SCIStartDMATransfer", "worker");
 }
 
-static inline void wait_for_writer(config_t *config, int buf)
+static inline void wait_for_writer(config_t *config)
 {
-    while (config->dma_queue_state[buf] != AVAILABLE);
+    while (config->dma_queue_state != AVAILABLE);
 }
 
 static void sci_cleanup(worker_t *worker, dma_buffer_t *dma)
@@ -430,12 +420,7 @@ static void sci_cleanup(worker_t *worker, dma_buffer_t *dma)
   SCIUnmapSegment(dma->control_map, SCI_NO_FLAGS, &error);
   SCIRemoveSegment(dma->control_segment, SCI_NO_FLAGS, &error);
 
-  int i;
-  #pragma unroll
-  for (i = 0; i < NUM_SEG; ++i)
-  {
-    SCIRemoveDMAQueue(dma->dma_queue[i], SCI_NO_FLAGS, &error);
-  }
+  SCIRemoveDMAQueue(dma->dma_queue[i], SCI_NO_FLAGS, &error);
 
   SCIClose(worker->sd, SCI_NO_FLAGS, &error);
   SCIClose(dma->sd, SCI_NO_FLAGS, &error);
@@ -454,7 +439,7 @@ int main(int argc, char **argv)
   worker_t worker_ctx;
   config_t *reader_config;
   dma_buffer_t dma;
-  dma_context_t dma_ctx[NUM_SEG];
+  dma_context_t dma_ctx;
 
   if (argc == 1) { print_help(); }
 
@@ -488,15 +473,9 @@ int main(int argc, char **argv)
   sci_init_worker(&worker_ctx, aligned_size);
 
   sci_init_dma_ctx(&dma);
-  
-  int i;
-  #pragma unroll
-  for (i = 0; i < NUM_SEG; ++i)
-  {
-    dma_ctx[i].config = dma.config;
-    dma_ctx[i].buf = i;
-    dma_ctx[i].done = 0;
-  }
+ 
+  dma_ctx.config = dma.config;
+  dma_ctx.done = 0;
 
   connect_remote_segment(&dma);
 
@@ -548,17 +527,17 @@ int main(int argc, char **argv)
     c63_encode_image(cm, &image);
 
     // Send to writer
-    wait_for_writer(dma.config, buf);
+    wait_for_writer(dma.config);
 
-    writer_job_ctx[buf]->keyframe = cm->curframe->keyframe;
-    memcpy(writer_job_ctx[buf]->Ydct, cm->curframe->residuals->Ydct + worker_order * dct_count_y, dct_size_y);
-    memcpy(writer_job_ctx[buf]->Udct, cm->curframe->residuals->Udct + worker_order * dct_count_u, dct_size_u);
-    memcpy(writer_job_ctx[buf]->Vdct, cm->curframe->residuals->Vdct + worker_order * dct_count_v, dct_size_v);
-    memcpy(writer_job_ctx[buf]->mbs_Y, cm->curframe->mbs[0] + worker_order * mb_count_y, mb_size_y);
-    memcpy(writer_job_ctx[buf]->mbs_U, cm->curframe->mbs[1] + worker_order * mb_count_uv, mb_size_uv);
-    memcpy(writer_job_ctx[buf]->mbs_V, cm->curframe->mbs[2] + worker_order * mb_count_uv, mb_size_uv);
+    writer_job_ctx->keyframe = cm->curframe->keyframe;
+    memcpy(writer_job_ctx->Ydct, cm->curframe->residuals->Ydct + worker_order * dct_count_y, dct_size_y);
+    memcpy(writer_job_ctx->Udct, cm->curframe->residuals->Udct + worker_order * dct_count_u, dct_size_u);
+    memcpy(writer_job_ctx->Vdct, cm->curframe->residuals->Vdct + worker_order * dct_count_v, dct_size_v);
+    memcpy(writer_job_ctx->mbs_Y, cm->curframe->mbs[0] + worker_order * mb_count_y, mb_size_y);
+    memcpy(writer_job_ctx->mbs_U, cm->curframe->mbs[1] + worker_order * mb_count_uv, mb_size_uv);
+    memcpy(writer_job_ctx->mbs_V, cm->curframe->mbs[2] + worker_order * mb_count_uv, mb_size_uv);
 
-    send_encoded_data(&dma, &dma_ctx[buf], buf);
+    send_encoded_data(&dma, &dma_ctx);
 
     printf("Worker %d sending encoded data to writer\n", worker_order);
 
@@ -569,32 +548,21 @@ int main(int argc, char **argv)
 
   printf("worker: Hello World!\n");
 
-  for (i = 0; i < NUM_SEG; ++i)
-  {
-    while (!dma_ctx[i].done);
-  }
-
-  for (i = 0; i < NUM_SEG; ++i)
-  {
-    while (dma.config->dma_queue_state[i] != AVAILABLE);
-  }
+  while (!dma_ctx.done);
+  
+  while (dma.config->dma_queue_state != AVAILABLE);
 
   printf("Worker prune 0\n");
 
-  for (i = 0; i < NUM_SEG; ++i) 
-  {
-    dma.config->dma_queue_state[i] = TRANSFER_COMPLETED;
-    dma.config->complete[i] = DONE;
-  }
+  dma.config->dma_queue_state = TRANSFER_COMPLETED;
+  dma.config->complete = DONE;
+
 
   printf("Worker prune 1\n");
 
   while (dma.config->ack != ACKNOWLEDGED) 
   {
-    for (i = 0; i < NUM_SEG; ++i) 
-    {
-      dma.config->dma_queue_state[i] = TRANSFER_COMPLETED;
-    }
+    dma.config->dma_queue_state[i] = TRANSFER_COMPLETED;
   }
 
   printf("Worker prune 2\n");

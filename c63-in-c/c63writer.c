@@ -38,7 +38,7 @@ typedef struct
 
     sci_map_t writer_map;
 
-    writer_job_t *buffer[MAX_NUM_WORKERS][NUM_SEG];
+    writer_job_t *buffer[MAX_NUM_WORKERS];
 
 } writer_t;
 
@@ -154,7 +154,7 @@ static void sci_init_writer(writer_t *writer)
     int i, j;
     sci_error_t error;
 
-    SCICreateSegment(writer->sd, &writer->writer_job_segment, GET_SEGMENTID(WRITER), 4 * sizeof(writer_job_t), SCI_NO_CALLBACK,
+    SCICreateSegment(writer->sd, &writer->writer_job_segment, GET_SEGMENTID(WRITER), 2 * sizeof(writer_job_t), SCI_NO_CALLBACK,
       NULL, SCI_NO_FLAGS, &error);
     sci_check_and_fail(error, "SCICreateSegment", "writer");
 
@@ -166,24 +166,20 @@ static void sci_init_writer(writer_t *writer)
 
     for (i = 0; i < MAX_NUM_WORKERS; ++i)
     {
-      for (j = 0; j < NUM_SEG; ++j)
-      {
-        size_t remote_offset = (i*NUM_SEG+j) * sizeof(writer_job_t);
-        writer->buffer[i][j] = (writer_job_t *) SCIMapLocalSegment(writer->writer_job_segment, &writer->writer_map, remote_offset, 
-          sizeof(writer_job_t), NULL, SCI_NO_FLAGS, &error);
-        sci_check_and_fail(error, "SCIMapLocalSegment", "writer");
-      }
+      size_t remote_offset = (i*NUM_SEG+j) * sizeof(writer_job_t);
+      writer->buffer[i] = (writer_job_t *) SCIMapLocalSegment(writer->writer_job_segment, &writer->writer_map, remote_offset, 
+        sizeof(writer_job_t), NULL, SCI_NO_FLAGS, &error);
+      sci_check_and_fail(error, "SCIMapLocalSegment", "writer");
     }
 }
 
-static inline void wait_for_workers(config_t *config[MAX_NUM_WORKERS], int buf) 
+static inline void wait_for_workers(config_t *config[MAX_NUM_WORKERS]) 
 {
   int i;
-  int done = 0;
   #pragma unroll
   for (i = 0; i < MAX_NUM_WORKERS; ++i)
   {
-    while (config[i]->dma_queue_state[buf] != TRANSFER_COMPLETED);
+    while (config[i]->dma_queue_state != TRANSFER_COMPLETED);
   }
 }
 
@@ -271,32 +267,29 @@ int main(int argc, char **argv)
   size_t mb_size_y = mb_count_y * sizeof(struct macroblock);
   size_t mb_size_uv = mb_count_uv * sizeof(struct macroblock);
 
-  int buf = 0;
-  int both_buf_done = 0;
-
   int num_frames = 0;
   while (1) 
   {
-    if (config[0]->complete[buf] == DONE || config[1]->complete[buf] == DONE) { break; }
+    if (config[0]->complete[0] == DONE || config[1]->complete[0] == DONE) { break; }
 
-    wait_for_workers(config, buf);
+    wait_for_workers(config);
 
-    if (config[0]->complete[buf] == DONE || config[1]->complete[buf] == DONE) { break; }
+    if (config[0]->complete[0] == DONE || config[1]->complete[0] == DONE) { break; }
 
     for (i = 0; i < MAX_NUM_WORKERS; ++i)
     {
-      config[i]->dma_queue_state[buf] = BUSY;
+      config[i]->dma_queue_state = BUSY;
     }
 
-    cm->curframe->keyframe = writer_ctx.buffer[0][0]->keyframe;
+    cm->curframe->keyframe = writer_ctx.buffer[0]->keyframe;
     for (i = 0; i < MAX_NUM_WORKERS; ++i)
     {
-        memcpy(cm->curframe->residuals->Ydct + i * dct_count_y,   writer_ctx.buffer[i][buf]->Ydct,  dct_size_y);
-        memcpy(cm->curframe->residuals->Udct + i * dct_count_u,   writer_ctx.buffer[i][buf]->Udct,  dct_size_u);
-        memcpy(cm->curframe->residuals->Vdct + i * dct_count_v,   writer_ctx.buffer[i][buf]->Vdct,  dct_size_v);
-        memcpy(cm->curframe->mbs[0]          + i * mb_count_y,  writer_ctx.buffer[i][buf]->mbs_Y, mb_size_y);
-        memcpy(cm->curframe->mbs[1]          + i * mb_count_uv, writer_ctx.buffer[i][buf]->mbs_U, mb_size_uv);
-        memcpy(cm->curframe->mbs[2]          + i * mb_count_uv, writer_ctx.buffer[i][buf]->mbs_V, mb_size_uv);
+        memcpy(cm->curframe->residuals->Ydct + i * dct_count_y,   writer_ctx.buffer[i]->Ydct,  dct_size_y);
+        memcpy(cm->curframe->residuals->Udct + i * dct_count_u,   writer_ctx.buffer[i]->Udct,  dct_size_u);
+        memcpy(cm->curframe->residuals->Vdct + i * dct_count_v,   writer_ctx.buffer[i]->Vdct,  dct_size_v);
+        memcpy(cm->curframe->mbs[0]          + i * mb_count_y,  writer_ctx.buffer[i]->mbs_Y, mb_size_y);
+        memcpy(cm->curframe->mbs[1]          + i * mb_count_uv, writer_ctx.buffer[i]->mbs_U, mb_size_uv);
+        memcpy(cm->curframe->mbs[2]          + i * mb_count_uv, writer_ctx.buffer[i]->mbs_V, mb_size_uv);
     }
 
     write_frame(cm);
@@ -305,12 +298,11 @@ int main(int argc, char **argv)
 
     for (i = 0; i < MAX_NUM_WORKERS; ++i)
     {
-      config[i]->dma_queue_state[buf] = AVAILABLE;
+      config[i]->dma_queue_state = AVAILABLE;
     }
 
-    if (config[0]->complete[buf] == DONE || config[1]->complete[buf] == DONE) { break; }
+    if (config[0]->complete == DONE || config[1]->complete == DONE) { break; }
 
-    buf ^= 1;
   }
 
   printf("writer end loop\n");
