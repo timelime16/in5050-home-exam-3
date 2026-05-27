@@ -26,8 +26,6 @@ static uint32_t worker_nodes[MAX_NUM_WORKERS] = {};
 static int width = 0;
 static int height = 0;
 
-static int finish_prog = 0;
-
 /* getopt */
 extern int optind;
 extern char *optarg;
@@ -181,17 +179,12 @@ static void sci_init_writer(writer_t *writer)
 static inline void wait_for_workers(config_t *config[MAX_NUM_WORKERS], int buf) 
 {
   int i;
-  int counter = 0;
   #pragma unroll
   for (i = 0; i < MAX_NUM_WORKERS; ++i)
   {
-    while (config[i]->dma_queue_state[buf] != TRANSFER_COMPLETED)
+    while (config[i]->dma_queue_state[buf] != TRANSFER_COMPLETED) 
     {
-      if (counter++ == END_PROG) 
-      { 
-        finish_prog = 1;
-        break; 
-      }
+      if (config[i]->complete[buf] == DONE) { break; }
     }
   }
 }
@@ -287,8 +280,6 @@ int main(int argc, char **argv)
   while (1) 
   {
     wait_for_workers(config, buf);
-
-    if (finish_prog) { break; }
 
     if (config[i]->complete[buf] == DONE) { break; }
 
