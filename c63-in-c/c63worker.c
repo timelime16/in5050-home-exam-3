@@ -341,8 +341,6 @@ static void get_worker_order()
   SCIGetLocalNodeId(ADAPTER_NO, &node_id, SCI_NO_FLAGS, &error);
   sci_check_and_fail(error, "SCIGetLocalNodeId", "worker");
 
-  printf("Node Id: %d\n", node_id);
-
   int i;
   for (i = 0; i < MAX_NUM_WORKERS; ++i) 
   {
@@ -352,8 +350,6 @@ static void get_worker_order()
       break;
     }
   }
-
-  printf("Node order: %d\n", worker_order);
 
   if (worker_order == -1) 
   {
@@ -540,8 +536,6 @@ int main(int argc, char **argv)
 
     send_encoded_data(&dma, &dma_ctx);
 
-    printf("Worker %d sending encoded data to writer\n", worker_order);
-
     reader_config->dma_queue_state[buf] = AVAILABLE;
 
     buf ^= 1;
@@ -553,20 +547,15 @@ int main(int argc, char **argv)
   
   while (dma.config->dma_queue_state[0] != AVAILABLE);
 
-  printf("Worker prune 0\n");
 
   dma.config->dma_queue_state[0] = TRANSFER_COMPLETED;
   dma.config->complete[0] = DONE;
 
 
-  printf("Worker prune 1\n");
-
   while (dma.config->ack != ACKNOWLEDGED) 
   {
     dma.config->dma_queue_state[i] = TRANSFER_COMPLETED;
   }
-
-  printf("Worker prune 2\n");
 
   sci_error_t error;
   SCIUnmapSegment(writer_remote_map, SCI_NO_FLAGS, &error);
@@ -576,14 +565,9 @@ int main(int argc, char **argv)
   SCIUnmapSegment(reader_remote_control_map, SCI_NO_FLAGS, &error);
   SCIDisconnectSegment(reader_remote_control_seg, SCI_NO_FLAGS, &error);
 
-  printf("Worker prune 3\n");
-
   free_c63_enc(cm);
 
-  printf("Worker prune 4\n");
   sci_cleanup(&worker_ctx, &dma);
-
-  printf("Worker prune 5\n");
 
   return 0;
 

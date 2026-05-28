@@ -305,8 +305,6 @@ int main(int argc, char **argv)
 
   }
 
-  printf("writer end loop\n");
-
   for (i = 0; i < MAX_NUM_WORKERS; ++i)
   {
     config[i]->ack = ACKNOWLEDGED;

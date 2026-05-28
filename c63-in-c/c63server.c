@@ -251,7 +251,6 @@ static void sci_init_control(dma_buffer_t *dma)
     for (i = 0; i < MAX_NUM_WORKERS; ++i)
     {
       c63_segment ctrl_seg = READER_WORKER_CTRL + i;
-      printf("reader worker ctrl %d: %d\n", i, ctrl_seg);
 
       SCICreateSegment(dma->sd, &dma->control_segment[i], GET_SEGMENTID(ctrl_seg), size, SCI_NO_CALLBACK,
         NULL, SCI_NO_FLAGS, &error);
@@ -401,8 +400,6 @@ int main(int argc, char **argv)
     }
   }
 
-  printf("Server end\n");
-
   for (i = 0; i < MAX_NUM_WORKERS; ++i)
   {
     for (j = 0; j < NUM_SEG; ++j)
@@ -421,8 +418,6 @@ int main(int argc, char **argv)
     }
     dma.config[i]->dma_queue_state[0] = dma.config[i]->dma_queue_state[1] = TRANSFER_COMPLETED;
   }
-
-  printf("Server send signal\n");
 
   for (i = 0; i < MAX_NUM_WORKERS; ++i) 
   {
